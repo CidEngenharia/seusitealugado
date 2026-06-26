@@ -1,0 +1,793 @@
+[
+  {
+    "id": "tenant-1",
+    "slug": "barbeariakeu",
+    "name": "Barbearia do Keu",
+    "ownerName": "Keu Santos",
+    "ownerEmail": "feedback@barbeariakeu.com",
+    "logoUrl": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "bannerUrl": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "themeColor": "amber",
+    "themeMode": "dark",
+    "fontFamily": "mono",
+    "template": "classic",
+    "description": "Corte de cabelo clássico, degradê, ajuste de barba esculpida na navalha com toalha quente e massagem facial. Ambiente clássico com café artesanal e cerveja gelada inclusos na assinatura.",
+    "address": "Rua Augusta, 1420 - Consolação, São Paulo - SP",
+    "openingHours": "Seg-Sáb: 09h às 21h",
+    "socials": {
+      "whatsapp": "(11) 98765-4321",
+      "instagram": "@barbeariadokeu",
+      "phone": "(11) 3215-6743",
+      "email": "contato@barbeariakeu.com"
+    },
+    "mapLocation": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3657.4109489500746!2d-46.6601673!3d-23.5536443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94ce59d2b2708eb1%3A0x6bba31da61b36e87!2sR.%20Augusta%2C%20S%C3%A3o%20Paulo%20-%20SP!5e0!3m2!1spt-BR!2sbr!4v1718790000000!5m2!1spt-BR!2sbr",
+    "services": [
+      {
+        "id": "srv-1",
+        "name": "Degradê Ultra Moderno",
+        "description": "Ajuste na máquina e tesoura com shaver para acabamento liso perfeito de alta durabilidade.",
+        "price": 55,
+        "duration": 40,
+        "imageUrl": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "srv-2",
+        "name": "Terapia de Barba do Keu",
+        "description": "Processo em 5 etapas com vapor de ozônio, óleos hidratantes, toalha quente e corte navalhado.",
+        "price": 45,
+        "duration": 30,
+        "imageUrl": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "srv-3",
+        "name": "Combo Imperial (Cabelo + Barba + Massagem)",
+        "description": "O pacote completo do cavalheiro. Corte, barba com toalha quente, lavagem e alinhamento de sobrancelha.",
+        "price": 90,
+        "duration": 75,
+        "imageUrl": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      }
+    ],
+    "crmClients": [
+      {
+        "id": "cli-1",
+        "name": "Lucas Alencar",
+        "phone": "(11) 99123-4567",
+        "email": "lucas@email.com",
+        "cpf": "123.456.789-00",
+        "birthday": "1995-04-12",
+        "notes": "Gosta de corte degradê bem alto com risca lateral de detalhe.",
+        "pipelineStage": "active",
+        "points": 45,
+        "cashback": 18.5,
+        "createdAt": "2026-03-01T12:00:00Z"
+      },
+      {
+        "id": "cli-2",
+        "name": "Guilherme Sampaio",
+        "phone": "(11) 98877-6655",
+        "email": "guilherme.s@email.com",
+        "notes": "Gosta de cabelo curto tradicional, prefere finalizar com pomada mate.",
+        "pipelineStage": "negotiation",
+        "points": 15,
+        "cashback": 5,
+        "createdAt": "2026-05-18T14:30:00Z"
+      },
+      {
+        "id": "cli-3",
+        "name": "Ricardo Mendes",
+        "phone": "(11) 97722-1133",
+        "email": "ricardo.mendes@email.com",
+        "notes": "Cliente inativo desde o mês passado. Costuma vir a cada 15 dias para barba.",
+        "pipelineStage": "inactive",
+        "points": 80,
+        "cashback": 35,
+        "createdAt": "2026-01-10T11:00:00Z"
+      },
+      {
+        "id": "cli-4",
+        "name": "Nicolas Freitas",
+        "phone": "(11) 96655-4433",
+        "email": "nicolas@email.com",
+        "notes": "Novo lead interessado após ver propaganda no Instagram.",
+        "pipelineStage": "lead",
+        "points": 0,
+        "cashback": 0,
+        "createdAt": "2026-06-15T09:00:00Z"
+      }
+    ],
+    "bookings": [
+      {
+        "id": "b-1",
+        "clientName": "Lucas Alencar",
+        "clientPhone": "(11) 99123-4567",
+        "clientEmail": "lucas@email.com",
+        "serviceId": "srv-3",
+        "dateTime": "2026-06-20T10:00:00Z",
+        "status": "confirmed",
+        "notes": "Agendado para sábado de manhã rápida de folga."
+      },
+      {
+        "id": "b-2",
+        "clientName": "Guilherme Sampaio",
+        "clientPhone": "(11) 98877-6655",
+        "clientEmail": "guilherme.s@email.com",
+        "serviceId": "srv-1",
+        "dateTime": "2026-06-18T15:00:00Z",
+        "status": "attended",
+        "notes": "Realizado com sucesso. Pagou via Pix."
+      },
+      {
+        "id": "b-3",
+        "clientName": "Carlos Drumond",
+        "clientPhone": "(11) 96321-7412",
+        "clientEmail": "carlos.d@email.com",
+        "serviceId": "srv-2",
+        "dateTime": "2026-06-21T16:30:00Z",
+        "status": "pending",
+        "notes": "Deseja testar a pomada pós navalha nova."
+      }
+    ],
+    "finance": {
+      "entries": [
+        {
+          "id": "f-1",
+          "type": "income",
+          "category": "Serviço",
+          "amount": 90,
+          "date": "2026-06-18",
+          "description": "Combo Imperial - Lucas Alencar",
+          "paymentMethod": "pix"
+        },
+        {
+          "id": "f-2",
+          "type": "income",
+          "category": "Venda Produto",
+          "amount": 50,
+          "date": "2026-06-17",
+          "description": "Pomada Modeladora Seca - 1 unidade",
+          "paymentMethod": "card"
+        },
+        {
+          "id": "f-3",
+          "type": "expense",
+          "category": "Aluguel",
+          "amount": 1500,
+          "date": "2026-06-05",
+          "description": "Aluguel da Sala Comercial Augusta",
+          "paymentMethod": "pix"
+        },
+        {
+          "id": "f-4",
+          "type": "expense",
+          "category": "Energia",
+          "amount": 285.4,
+          "date": "2026-06-10",
+          "description": "Energia Elétrica Enel Junho",
+          "paymentMethod": "money"
+        },
+        {
+          "id": "f-5",
+          "type": "income",
+          "category": "Serviço",
+          "amount": 55,
+          "date": "2026-06-19",
+          "description": "Corte Degradê - Guilherme Sampaio",
+          "paymentMethod": "pix"
+        },
+        {
+          "id": "f-6",
+          "type": "expense",
+          "category": "Fornecedores",
+          "amount": 400,
+          "date": "2026-06-12",
+          "description": "Nox Fornecedores Pomada e Óleo Barba",
+          "paymentMethod": "card"
+        }
+      ],
+      "payables": [
+        {
+          "id": "pay-1",
+          "title": "Fornecedor Gillette S/A",
+          "dueDate": "2026-06-25",
+          "amount": 320,
+          "status": "pending"
+        },
+        {
+          "id": "pay-2",
+          "title": "Internet de Alta Velocidade Vivo",
+          "dueDate": "2026-06-22",
+          "amount": 140,
+          "status": "pending"
+        }
+      ],
+      "receivables": [
+        {
+          "id": "rec-1",
+          "clientName": "Empresa XP Assessoria",
+          "serviceName": "Cortes em Equipe Convênio",
+          "amount": 450,
+          "dueDate": "2026-06-28",
+          "status": "pending"
+        }
+      ]
+    },
+    "inventory": [
+      {
+        "id": "p-1",
+        "code": "POM-001",
+        "name": "Pomada Modeladora Matte Knox",
+        "category": "Cabelo",
+        "quantity": 2,
+        "minQuantity": 5,
+        "supplier": "Nox Fornecedores",
+        "costPrice": 15,
+        "salePrice": 45
+      },
+      {
+        "id": "p-2",
+        "code": "OLE-002",
+        "name": "Óleo Premium de Sândalo Barber",
+        "category": "Barba",
+        "quantity": 12,
+        "minQuantity": 3,
+        "supplier": "Sândalo S/A",
+        "costPrice": 18,
+        "salePrice": 38
+      },
+      {
+        "id": "p-3",
+        "code": "SHA-003",
+        "name": "Shampoo Refrescante de Alecrim & Hortelã",
+        "category": "Higienização",
+        "quantity": 1,
+        "minQuantity": 4,
+        "supplier": "BioNatura",
+        "costPrice": 10,
+        "salePrice": 28
+      }
+    ],
+    "fidelityProgram": {
+      "type": "cashback",
+      "rate": 10,
+      "rule": "10% de cashback devolvido em todas as compras que acumulam no saldo do CRM do cliente para descontar no próximo serviço."
+    },
+    "marketingCampaigns": [
+      {
+        "id": "camp-1",
+        "code": "PRIMORDIAL15",
+        "discount": 15,
+        "type": "percent",
+        "title": "Campanha de Inauguração - 15% Desconto",
+        "isActive": true
+      },
+      {
+        "id": "camp-2",
+        "code": "DIADOSNAMORADOS",
+        "discount": 10,
+        "type": "value",
+        "title": "Sexta Especial - R$ 10 de desconto nos Combos",
+        "isActive": false
+      }
+    ],
+    "reviews": [
+      {
+        "id": "rev-1",
+        "author": "Carlos Silveira",
+        "rating": 5,
+        "comment": "O Keu é simplesmente o melhor barbeiro da capital. A toalha quente é sensacional!",
+        "date": "2026-06-15",
+        "approved": true
+      },
+      {
+        "id": "rev-2",
+        "author": "Pedro Ramos",
+        "rating": 4,
+        "comment": "Excelente atendimento, lugar muito estiloso e boa música. Um pouco difícil achar vaga na rua paulista perto.",
+        "date": "2026-06-17",
+        "approved": true
+      },
+      {
+        "id": "rev-3",
+        "author": "Joaquim Costa",
+        "rating": 5,
+        "comment": "Excelente navalha, tudo limpo, descartável. Com certeza voltarei sempre.",
+        "date": "2026-06-19",
+        "approved": false
+      }
+    ],
+    "plan": "premium",
+    "status": "active",
+    "createdAt": "2026-01-10T11:00:00Z",
+    "planExpiration": "2026-07-10T11:00:00Z",
+    "productsToSell": [
+      {
+        "id": "prod-1-1",
+        "name": "Pomada Modeladora Dry Matte Extreme 150g",
+        "description": "Fixação forte o dia inteiro com acabamento totalmente seco e fosco. Ideal para penteados clássicos e modernos.",
+        "price": 45,
+        "imageUrl": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=150&auto=format&fit=crop&q=60"
+      },
+      {
+        "id": "prod-1-2",
+        "name": "Óleo de Barba Premium Sândalo Imperial 30ml",
+        "description": "Hidratação profunda para fios da barba ressecada, aroma marcante de madeiras nobres e toque seco.",
+        "price": 35,
+        "imageUrl": "https://images.unsplash.com/photo-1626015829430-79b97c39be26?w=150&auto=format&fit=crop&q=60"
+      }
+    ]
+  },
+  {
+    "id": "tenant-2",
+    "slug": "salaodajulie",
+    "name": "Salão da Julie",
+    "ownerName": "Julie Andrews",
+    "ownerEmail": "julie@salaodajulie.com.br",
+    "logoUrl": "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "bannerUrl": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "themeColor": "rose",
+    "themeMode": "light",
+    "fontFamily": "serif",
+    "template": "minimal",
+    "description": "Salão de beleza focado em bem-estar, realce da beleza autoral, colorações orgânicas, mechas personalizadas e terapia capilar profunda com produtos veganos certificados para sua saúde.",
+    "address": "Av. Faria Lima, 2100 - Cerqueira César, São Paulo - SP",
+    "openingHours": "Ter-Sáb: 10h às 20h",
+    "socials": {
+      "whatsapp": "(11) 97766-5544",
+      "instagram": "@salaodajulie",
+      "phone": "(11) 4002-8922",
+      "email": "contato@salaodajulie.com"
+    },
+    "mapLocation": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3657.1757827670783!2d-46.6853678!3d-23.5658428!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94ce57022d99bc45%3A0xe7a5c71d701e51b3!2sAv.%20Brig.%20Faria%20Lima%2C%20S%C3%A3o%20Paulo%20-%20SP!5e0!3m2!1spt-BR!2sbr!4v1718790100000!5m2!1spt-BR!2sbr",
+    "services": [
+      {
+        "id": "srv-2-1",
+        "name": "Escova Hidratação Vegana",
+        "description": "Lavagem profunda com xampu detox de óleos essenciais, máscara reparadora intensa e escova lisa ou modelada.",
+        "price": 120,
+        "duration": 60,
+        "imageUrl": "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "srv-2-2",
+        "name": "Manicure & Pedicure Premium",
+        "description": "Espalda artesanal, cutilagem fina com instrumentos autoclavados, esfoliação de pêssego e esmaltação importada de longa duração.",
+        "price": 75,
+        "duration": 50,
+        "imageUrl": "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      }
+    ],
+    "crmClients": [
+      {
+        "id": "cli-2-1",
+        "name": "Mariana Alvarenga",
+        "phone": "(11) 99345-6789",
+        "email": "mariana.alv@email.com",
+        "birthday": "1991-08-20",
+        "notes": "Usa apenas esmaltes neutros e nude.",
+        "pipelineStage": "active",
+        "points": 15,
+        "cashback": 10,
+        "createdAt": "2026-04-10T12:00:00Z"
+      }
+    ],
+    "bookings": [
+      {
+        "id": "b-2-1",
+        "clientName": "Mariana Alvarenga",
+        "clientPhone": "(11) 99345-6789",
+        "clientEmail": "mariana.alv@email.com",
+        "serviceId": "srv-2-2",
+        "dateTime": "2026-06-21T14:00:00Z",
+        "status": "confirmed"
+      }
+    ],
+    "finance": {
+      "entries": [
+        {
+          "id": "f-2-1",
+          "type": "income",
+          "category": "Serviço",
+          "amount": 240,
+          "date": "2026-06-15",
+          "description": "Duas Cutilagens e Escovas Realizadas",
+          "paymentMethod": "pix"
+        },
+        {
+          "id": "f-2-2",
+          "type": "expense",
+          "category": "Fornecedores",
+          "amount": 300,
+          "date": "2026-06-12",
+          "description": "Corantes Orgânicos e Cosméticos L'Oreal",
+          "paymentMethod": "card"
+        }
+      ],
+      "payables": [
+        {
+          "id": "pay-2-1",
+          "title": "Vencimento Aluguel Comercial",
+          "dueDate": "2026-06-28",
+          "amount": 1900,
+          "status": "pending"
+        }
+      ],
+      "receivables": []
+    },
+    "inventory": [
+      {
+        "id": "p-2-1",
+        "code": "ESM-01",
+        "name": "Esmalte Importado Rosé Chic OPI",
+        "category": "Unhas",
+        "quantity": 8,
+        "minQuantity": 2,
+        "supplier": "Beauty Distribuidora",
+        "costPrice": 20,
+        "salePrice": 45
+      }
+    ],
+    "fidelityProgram": {
+      "type": "points",
+      "rate": 1,
+      "rule": "1 ponto para cada R$ 1 gasto. Ao acumular 200 pontos, ganha uma maravilhosa massagem nos pés ou escova simples de brinde!"
+    },
+    "marketingCampaigns": [],
+    "reviews": [
+      {
+        "id": "rev-2-1",
+        "author": "Fernanda Toledo",
+        "rating": 5,
+        "comment": "Salão aconchegante, café incrível e os melhores produtos! Julie é um amor.",
+        "date": "2026-06-18",
+        "approved": true
+      }
+    ],
+    "plan": "premium",
+    "status": "active",
+    "createdAt": "2026-02-15T10:00:00Z",
+    "planExpiration": "2026-08-15T10:00:00Z",
+    "productsToSell": [
+      {
+        "id": "prod-2-1",
+        "name": "Shampoo Reconstrutor Absolut Repair L'Oréal 300ml",
+        "description": "Reparação e restauração instantânea dos cabelos mais danificados ou quimicamente tratados de salão.",
+        "price": 120,
+        "imageUrl": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=150&auto=format&fit=crop&q=60"
+      },
+      {
+        "id": "prod-2-2",
+        "name": "Sérum Nutritivo Antifrizz Blond Absolu Kérastase 50ml",
+        "description": "Brilho espetacular com redução de frizz imediata e hidratação profunda sem pesar os fios.",
+        "price": 180,
+        "imageUrl": "https://images.unsplash.com/photo-1620052581638-512f375e5f5a?w=150&auto=format&fit=crop&q=60"
+      }
+    ]
+  },
+  {
+    "id": "tenant-3",
+    "slug": "oficinadocarlos",
+    "name": "Oficina do Carlos",
+    "ownerName": "Carlos Alberto",
+    "ownerEmail": "carlos@oficinadocarlos.com.br",
+    "logoUrl": "https://images.unsplash.com/photo-1616788494707-ec28f08d05a1?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "bannerUrl": "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "themeColor": "blue",
+    "themeMode": "dark",
+    "fontFamily": "sans",
+    "template": "modern",
+    "description": "Referência em retífica de motores, reparação mecânica profunda, diagnóstico eletrônico computadorizado avançado, troca de óleo reguladora e serviços de freio em geral.",
+    "address": "Av. do Estado, 4500 - Cambuci, São Paulo - SP",
+    "openingHours": "Seg-Sex: 08h às 18h",
+    "socials": {
+      "whatsapp": "(11) 96655-8899",
+      "instagram": "@oficinadocarlos",
+      "phone": "(11) 5055-3211",
+      "email": "contato@oficinadocarlos.com"
+    },
+    "mapLocation": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3656.983427909068!2d-46.6111111!3d-23.5701111!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94ce596cc6583925%3A0xc3f8b05fe6b5b5cf!2sAv.%20do%20Estado%2C%20S%C3%A3o%20Paulo%20-%20SP!5e0!3m2!1spt-BR!2sbr!4v1718790200000!5m2!1spt-BR!2sbr",
+    "services": [
+      {
+        "id": "srv-3-1",
+        "name": "Revisão Mecânica Preventiva Completa",
+        "description": "Diagnóstico computadorizado de injeção direta, medição de pressão dos cilindros, checagem de pastilhas de freio, filtros e fluidos.",
+        "price": 350,
+        "duration": 180,
+        "imageUrl": "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "srv-3-2",
+        "name": "Troca Filtro & Óleo Sintético 5W30",
+        "description": "Substituição completa de óleo lubrificante sintético premium, filtro de óleo e reset de painel contador de tempo.",
+        "price": 180,
+        "duration": 45,
+        "imageUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      }
+    ],
+    "crmClients": [],
+    "bookings": [],
+    "finance": {
+      "entries": [
+        {
+          "id": "f-3-1",
+          "type": "income",
+          "category": "Serviço",
+          "amount": 350,
+          "date": "2026-06-12",
+          "description": "Revisão Completa Corolla 2020",
+          "paymentMethod": "card"
+        }
+      ],
+      "payables": [],
+      "receivables": []
+    },
+    "inventory": [],
+    "fidelityProgram": {
+      "type": "points",
+      "rate": 1,
+      "rule": "Troque pontos por descontos em mão de obra especializada futuramente!"
+    },
+    "marketingCampaigns": [],
+    "reviews": [
+      {
+        "id": "rev-3-1",
+        "author": "Márcio Antunes",
+        "rating": 5,
+        "comment": "Mecânico extremamente honesto. Relatou o problema e consertou rapidamente. Recomendo muito!",
+        "date": "2026-06-14",
+        "approved": true
+      }
+    ],
+    "plan": "basic",
+    "status": "active",
+    "createdAt": "2026-03-10T11:00:00Z",
+    "planExpiration": "2026-07-10T11:00:00Z"
+  },
+  {
+    "id": "tenant-4",
+    "slug": "petshopfeliz",
+    "name": "Pet Shop Feliz",
+    "ownerName": "Carlos Drumond",
+    "ownerEmail": "drumond@petshopfeliz.com",
+    "logoUrl": "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "bannerUrl": "https://images.unsplash.com/photo-1541599540903-216a46ca1bf0?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "themeColor": "emerald",
+    "themeMode": "light",
+    "fontFamily": "sans",
+    "template": "modern",
+    "description": "O melhor espaço para o banho, hidratação de pelos e embelezamento do seu peludinho. Profissionais carinhosos, táxi pet furgão e consultório veterinário preventivo integrado.",
+    "address": "Rua das Figueiras, 650 - Jardim Bairro, Santo André - SP",
+    "openingHours": "Seg-Sáb: 08h às 19h",
+    "socials": {
+      "whatsapp": "(11) 95533-1122",
+      "instagram": "@petshopfeliz",
+      "phone": "(11) 4435-0012",
+      "email": "contato@petshopfeliz.com"
+    },
+    "mapLocation": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3654.512644265431!2d-46.536782!3d-23.654812!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94ce42eb78121bc3%3A0xe542385f0ef32ba5!2sR.%20das%20Figueiras%2C%20Santo%20Andr%C3%A9%20-%20SP!5e0!3m2!1spt-BR!2sbr!4v1718790300000!5m2!1spt-BR!2sbr",
+    "services": [
+      {
+        "id": "srv-4-1",
+        "name": "Super Banho + Tosa Higiênica",
+        "description": "Shampoo hipoalergênico premium, condicionador restaurador, secagem com soprador silencioso, corte de unhas e limpeza de orelhas inclusas.",
+        "price": 85,
+        "duration": 90,
+        "imageUrl": "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "srv-4-2",
+        "name": "Terapia Spa Furminator Outono",
+        "description": "Processo profissional com escova especial Furminator para remoção de até 90% dos pelos mortos que caem pela casa.",
+        "price": 110,
+        "duration": 110,
+        "imageUrl": "https://images.unsplash.com/photo-1581888227599-779811939961?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      }
+    ],
+    "crmClients": [
+      {
+        "id": "cli-4-1",
+        "name": "Bernardo Silva (Mel)",
+        "phone": "(11) 94432-1111",
+        "email": "bernardo@email.com",
+        "notes": "Dona da Golden Mel. Gosta de lacinho rosa.",
+        "pipelineStage": "active",
+        "points": 85,
+        "cashback": 12,
+        "createdAt": "2026-01-20T10:00:00Z"
+      }
+    ],
+    "bookings": [
+      {
+        "id": "b-4-1",
+        "clientName": "Bernardo Silva (Mel)",
+        "clientPhone": "(11) 94432-1111",
+        "clientEmail": "bernardo@email.com",
+        "serviceId": "srv-4-1",
+        "dateTime": "2026-06-20T14:00:00Z",
+        "status": "confirmed"
+      }
+    ],
+    "finance": {
+      "entries": [
+        {
+          "id": "f-4-1",
+          "type": "income",
+          "category": "Serviço",
+          "amount": 85,
+          "date": "2026-06-18",
+          "description": "Banho Golden Mel - Bernardo",
+          "paymentMethod": "pix"
+        },
+        {
+          "id": "f-4-2",
+          "type": "expense",
+          "category": "Fornecedores",
+          "amount": 150,
+          "date": "2026-06-11",
+          "description": "Compra xampus e sabonetes pet",
+          "paymentMethod": "money"
+        }
+      ],
+      "payables": [],
+      "receivables": []
+    },
+    "inventory": [
+      {
+        "id": "p-4-1",
+        "code": "XAM-01",
+        "name": "Xampu Neutro Sanol Hipoalergenico",
+        "category": "Estética",
+        "quantity": 1,
+        "minQuantity": 3,
+        "supplier": "Sanol Pets Ltda",
+        "costPrice": 8,
+        "salePrice": 22
+      }
+    ],
+    "fidelityProgram": {
+      "type": "points",
+      "rate": 5,
+      "rule": "Retorne a cada 10 banhos e ganhe 1 tosa simples gratuita."
+    },
+    "marketingCampaigns": [],
+    "reviews": [
+      {
+        "id": "rev-4-1",
+        "author": "Camila Ortiz",
+        "rating": 5,
+        "comment": "Tratam a Mel com o maior amor do mundo. Volto de olhos fechados!",
+        "date": "2026-06-12",
+        "approved": true
+      }
+    ],
+    "plan": "premium",
+    "status": "active",
+    "createdAt": "2026-01-15T11:00:00Z",
+    "planExpiration": "2026-07-15T11:00:00Z"
+  },
+  {
+    "id": "tenant-5",
+    "slug": "sallesfit",
+    "name": "SallesFit",
+    "ownerName": "Sidney Sales",
+    "ownerEmail": "sidney.sales@gmail.com",
+    "logoUrl": "/src/assets/images/sallesfit_logo_1782162401662.jpg",
+    "bannerUrl": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    "themeColor": "rose",
+    "themeMode": "dark",
+    "fontFamily": "sans",
+    "template": "modern",
+    "description": "Moda fitness premium, vestuário de alta performance e consultoria esportiva inteligente. Tecidos tecnológicos dry-fit e modelagem ergonômica premium feitos para te mover rumo aos seus objetivos.",
+    "address": "Av. Paulista, 1000 - Bela Vista, São Paulo - SP",
+    "openingHours": "Seg-Sáb: 07h às 22h",
+    "socials": {
+      "whatsapp": "(11) 99999-8888",
+      "instagram": "@sallesfit",
+      "phone": "(11) 3252-9988",
+      "email": "contato@sallesfit.com.br"
+    },
+    "mapLocation": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3657.197418928!2d-46.656!3d-23.561!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94ce59cef!2sAv.%20Paulista%2C%20S%C3%A3o%20Paulo%20-%20SP!5e0!3m2!1spt-BR!2sbr!4v1718790000000!5m2!1spt-BR!2sbr",
+    "services": [
+      {
+        "id": "srv-5-1",
+        "name": "Consultoria Fitness VIP",
+        "description": "Acompanhamento personalizado com planilha de treinos, dieta ajustada semanalmente e suporte esportivo completo.",
+        "price": 199,
+        "duration": 60,
+        "imageUrl": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "srv-5-2",
+        "name": "Treino Funcional de Alta Queima",
+        "description": "Circuito dinâmico focado em emagrecimento rápido, condicionamento cárdio superior e ganho de força muscular.",
+        "price": 45,
+        "duration": 45,
+        "imageUrl": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      }
+    ],
+    "crmClients": [
+      {
+        "id": "cli-5-1",
+        "name": "Carlos Andrade",
+        "phone": "(11) 99888-7777",
+        "email": "carlos.fit@email.com",
+        "notes": "Usa tamanho G. Focado em treinamento hipertrófico.",
+        "pipelineStage": "active",
+        "points": 150,
+        "cashback": 35,
+        "createdAt": "2026-04-10T11:00:00Z"
+      }
+    ],
+    "bookings": [],
+    "finance": {
+      "entries": [
+        {
+          "id": "f-5-1",
+          "type": "income",
+          "category": "Venda Produto",
+          "amount": 89.9,
+          "date": "2026-06-18",
+          "description": "Top Fitness Cropped SallesFit",
+          "paymentMethod": "pix"
+        }
+      ],
+      "payables": [],
+      "receivables": []
+    },
+    "inventory": [
+      {
+        "id": "p-5-1",
+        "code": "VES-01",
+        "name": "Top Fitness Cropped SallesFit",
+        "category": "Vestuário",
+        "quantity": 15,
+        "minQuantity": 5,
+        "supplier": "TexFit Brasil",
+        "costPrice": 35,
+        "salePrice": 89.9
+      }
+    ],
+    "fidelityProgram": {
+      "type": "points",
+      "rate": 10,
+      "rule": "Ganhe 1 ponto a cada R$ 1 gasto. Junte 100 pontos e ganhe R$ 10 de desconto."
+    },
+    "marketingCampaigns": [],
+    "reviews": [
+      {
+        "id": "rev-5-1",
+        "author": "Fernanda Lima",
+        "rating": 5,
+        "comment": "O top cropped veste perfeitamente bem! Tecido muito confortável e que realmente te dá excelente suporte nos exercícios.",
+        "date": "2026-06-20",
+        "approved": true
+      }
+    ],
+    "plan": "premium",
+    "status": "active",
+    "createdAt": "2026-06-22T10:00:00Z",
+    "planExpiration": "2026-12-22T10:00:00Z",
+    "productsToSell": [
+      {
+        "id": "prod-5-1",
+        "name": "Top Fitness Cropped SallesFit",
+        "description": "Conforto supremo e alta sustentação para seus treinos intensos. Tecido premium dry-fit em poliamida com elastano.",
+        "price": 89.9,
+        "imageUrl": "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "prod-5-2",
+        "name": "Shorts Tactel Sport Premium",
+        "description": "Shorts com tecnologia de secagem ultra rápida, ajuste de cordão de algodão e bolsos laterais invisíveis funcionais.",
+        "price": 69.9,
+        "imageUrl": "https://images.unsplash.com/photo-1539185441755-769473a23570?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      },
+      {
+        "id": "prod-5-3",
+        "name": "Garrafa Térmica SallesFit Inox",
+        "description": "Isolamento a vácuo com tampa antivazamento e bico anatômico. Mantém sua bebida bem gelada por 24 horas.",
+        "price": 119,
+        "imageUrl": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+      }
+    ]
+  }
+]
