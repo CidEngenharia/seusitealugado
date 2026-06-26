@@ -60,12 +60,14 @@ interface TenantAdminDashboardProps {
   tenant: Tenant;
   onRefreshTenant: () => void;
   onBackToPublicSite: () => void;
+  userRole?: 'superadmin' | 'tenantadmin' | null;
 }
 
 export default function TenantAdminDashboard({
   tenant,
   onRefreshTenant,
   onBackToPublicSite,
+  userRole,
 }: TenantAdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<
     | "overview"
@@ -199,6 +201,7 @@ export default function TenantAdminDashboard({
 
   // Check feature permission per tier
   const isFeatureLocked = (tab: string): boolean => {
+    if (userRole === "superadmin") return false; // Super admin has full access to all tabs
     if (tab === "salesProducts") {
       return tenant.plan !== "premium";
     }
@@ -890,7 +893,7 @@ export default function TenantAdminDashboard({
                     </span>
                   </div>
 
-                  {tenant.plan !== "premium" && (
+                  {tenant.plan !== "premium" && userRole !== "superadmin" && (
                     <span className="text-amber-600 text-[10px] font-bold">
                       ⚠️ Disponível integralmente no plano Premium
                     </span>
@@ -905,7 +908,7 @@ export default function TenantAdminDashboard({
                 </p>
 
                 {/* Block for basic/professional plan */}
-                {tenant.plan !== "premium" ? (
+                {tenant.plan !== "premium" && userRole !== "superadmin" ? (
                   <div className="p-5 bg-slate-50 border border-slate-200/85 rounded-xl text-center space-y-3 shadow-inner">
                     <p className="text-xs text-slate-600 font-medium">
                       Sua assinatura atual **Plano {tenant.plan.toUpperCase()}**
@@ -2893,7 +2896,7 @@ export default function TenantAdminDashboard({
                   <div className="space-y-2 relative">
                     <label className="block text-slate-500 font-bold flex items-center justify-between">
                       <span>Modo Visual Padrão</span>
-                      {tenant.plan !== "premium" && (
+                      {tenant.plan !== "premium" && userRole !== "superadmin" && (
                         <span className="text-[9px] bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-full flex items-center gap-1 font-bold">
                           <Lock size={8} /> Premium
                         </span>
@@ -2901,7 +2904,7 @@ export default function TenantAdminDashboard({
                     </label>
                     <select
                       value={tenant.themeMode || "light"}
-                      disabled={tenant.plan !== "premium"}
+                      disabled={tenant.plan !== "premium" && userRole !== "superadmin"}
                       onChange={(e) =>
                         saveIdentitySettings({
                           themeMode: e.target.value as "light" | "dark",
@@ -2912,7 +2915,7 @@ export default function TenantAdminDashboard({
                       <option value="light">Modo Claro (Padrão)</option>
                       <option value="dark">Modo Escuro (Sleek Dark)</option>
                     </select>
-                    {tenant.plan !== "premium" ? (
+                    {tenant.plan !== "premium" && userRole !== "superadmin" ? (
                       <p className="text-[9px] text-amber-600/80 mt-1 leading-tight">
                         Disponível apenas para parceiros no plano **Premium**.
                       </p>

@@ -28,9 +28,10 @@ interface SuperAdminPanelProps {
   tenants: Tenant[];
   onGoBack: () => void;
   onRefreshAll: () => void;
+  onEnterTenantAdmin: (slug: string) => void;
 }
 
-export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll }: SuperAdminPanelProps) {
+export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnterTenantAdmin }: SuperAdminPanelProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const selectedTenant = tenants.find(t => t.id === selectedTenantId);
@@ -336,6 +337,14 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll }: Sup
                   <span className="text-slate-400 block font-bold uppercase text-[9px]">Endereço do Site</span>
                   <p className="font-semibold text-indigo-600 truncate">sitealugado.com/{selectedTenant.slug}</p>
                 </div>
+              </div>
+              <div className="pt-4 border-t border-slate-200 flex justify-end">
+                <button
+                  onClick={() => onEnterTenantAdmin(selectedTenant.slug)}
+                  className="bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-5 rounded-full transition-all cursor-pointer shadow-sm"
+                >
+                  Acessar Painel do Lojista
+                </button>
               </div>
             </div>
           )}

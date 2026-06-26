@@ -105,7 +105,7 @@ export default function App() {
       )}
 
       {/* QUICK FLOATING MULTI-TENANT TEST BAR - ONLY FOR ADMINS */}
-      {(role === 'superadmin' || role === 'tenantadmin') && (
+      {(role === 'superadmin' || role === 'tenantadmin') && currentView !== 'landing' && (
         <div className="bg-zinc-900 border-b border-zinc-800 text-[10px] text-zinc-400 p-2 flex justify-between items-center px-4 font-mono select-none">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -211,6 +211,7 @@ export default function App() {
           tenant={activeTenant}
           onRefreshTenant={handleRefreshActiveTenant}
           onBackToPublicSite={() => setCurrentView('tenant-public')}
+          userRole={role}
         />
       )}
 
@@ -219,6 +220,10 @@ export default function App() {
           tenants={tenants}
           onGoBack={() => setCurrentView('landing')}
           onRefreshAll={fetchTenants}
+          onEnterTenantAdmin={(slug) => {
+            setActiveSlug(slug);
+            setCurrentView('tenant-admin');
+          }}
         />
       )}
 
