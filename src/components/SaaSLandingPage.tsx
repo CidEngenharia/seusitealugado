@@ -458,7 +458,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       
       {/* WHATSAPP FLOATING BUTTON (ACTIVE & HIGHLY ANIMATED AS THE OFFICIAL BRAND) */}
       <a 
-        href="https://wa.me/5571984184782" 
+        href="https://wa.me/5571984184782?text=Olá%20,%20gostaria%20de%20mais%20Informações%20sobre%20aluguel%20de%20Sites" 
         target="_blank" 
         rel="noopener noreferrer"
         referrerPolicy="no-referrer"
