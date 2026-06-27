@@ -9,6 +9,7 @@ import TenantPublicPage from "./components/TenantPublicPage";
 import TenantAdminDashboard from "./components/TenantAdminDashboard";
 import SuperAdminPanel from "./components/SuperAdminPanel";
 import SaaSBusca from "./components/SaaSBusca";
+import PortfolioPage from "./components/PortfolioPage";
 import AuthModal from "./components/AuthModal";
 import LoadingScreen from "./components/LoadingScreen";
 import { Tenant } from "./types";
@@ -21,8 +22,8 @@ export default function App() {
   const [role, setRole] = useState<'superadmin' | 'tenantadmin' | null>(null);
   
   // Custom SPA Client-Side States
-  // 'landing' | ' busca' | 'tenant-public' | 'tenant-admin' | 'super-admin'
-  const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'tenant-public' | 'tenant-admin' | 'super-admin'>('landing');
+  // 'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'
+  const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'>('landing');
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
   // Fetch tenants on mount
@@ -46,9 +47,11 @@ export default function App() {
     // Direct url-hash slug routing support for testing
     const handleHashRouting = () => {
       const hash = window.location.hash;
-      if (hash.startsWith("#/")) {
+      if (hash === "#/portfolio") {
+        setCurrentView('portfolio');
+      } else if (hash.startsWith("#/")) {
         const slug = hash.replace("#/", "");
-        if (slug) {
+        if (slug && slug !== 'portfolio') {
           setActiveSlug(slug);
           setCurrentView('tenant-public');
         }
@@ -178,6 +181,10 @@ export default function App() {
           }}
           onGoToSearch={() => setCurrentView('busca')}
           onGoToSuperAdmin={() => setShowAuthModal(true)}
+          onGoToPortfolio={() => {
+            setCurrentView('portfolio');
+            window.location.hash = '/portfolio';
+          }}
         />
       )}
 
@@ -190,6 +197,21 @@ export default function App() {
             window.location.hash = `/${slug}`;
           }}
           onGoBack={() => setCurrentView('landing')}
+        />
+      )}
+
+      {currentView === 'portfolio' && (
+        <PortfolioPage
+          tenants={tenants}
+          onSelectTenant={(slug) => {
+            setActiveSlug(slug);
+            setCurrentView('tenant-public');
+            window.location.hash = `/${slug}`;
+          }}
+          onGoBack={() => {
+            setCurrentView('landing');
+            window.location.hash = '';
+          }}
         />
       )}
 

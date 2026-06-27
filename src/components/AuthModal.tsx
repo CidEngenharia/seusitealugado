@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Lock, Mail, AlertCircle, Loader2 } from "lucide-react";
+import { X, Lock, Mail, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { Tenant } from "../types";
 
 // ── Super admins hardcoded (sem backend de autenticação real ainda) ──
@@ -22,6 +22,7 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -142,13 +143,21 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && isLogin && handleLogin()}
-              className="w-full pl-9 pr-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-500"
+              className="w-full pl-9 pr-10 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-500"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer"
+              title={showPassword ? "Ocultar senha" : "Exibir senha"}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
 
           {/* Categoria (somente cadastro) */}

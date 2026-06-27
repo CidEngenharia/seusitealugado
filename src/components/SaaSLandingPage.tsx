@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { 
   Building2, 
@@ -39,12 +39,14 @@ import {
 } from "lucide-react";
 import { Tenant } from "../types";
 import LogoSeusiteAlugado from "./LogoSeusiteAlugado";
+import SetupModal from "./SetupModal";
 
 interface SaaSLandingPageProps {
   tenants: Tenant[];
   onSelectTenant: (slug: string) => void;
   onGoToSearch: () => void;
   onGoToSuperAdmin: () => void;
+  onGoToPortfolio: () => void;
 }
 
 // Translations Dictionary for complete PT-BR and EN-US fidelity
@@ -223,12 +225,12 @@ const translations = {
   }
 };
 
-export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch, onGoToSuperAdmin }: SaaSLandingPageProps) {
+export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch, onGoToSuperAdmin, onGoToPortfolio }: SaaSLandingPageProps) {
   const [lang, setLang] = useState<'pt' | 'en'>('pt');
   const t = translations[lang];
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark'); // standard is modern dark mode to reflect premium supersites feeling
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
@@ -236,6 +238,23 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
 
   // FAQ Accordion active indices
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  // === Controle do SetupModal pós-pagamento ===
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [setupPlan, setSetupPlan] = useState<"basic" | "professional" | "premium">("basic");
+
+  // Lê parâmetros de URL quando o Stripe redireciona de volta
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const planParam = params.get("plan");
+    const setupParam = params.get("setup");
+    if (setupParam === "true" && (planParam === "basic" || planParam === "professional" || planParam === "premium")) {
+      setSetupPlan(planParam);
+      setShowSetupModal(true);
+      // Remove os parâmetros da URL sem recarregar a página
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    }
+  }, []);
 
   // Interactive Diagnostic State Machine
   const [diagStep, setDiagStep] = useState(1);
@@ -519,13 +538,13 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               >
                 {t.menuBenefitLink}
               </a>
-              <a 
-                href="#portfolio" 
-                onClick={() => setHamburgerOpen(false)} 
-                className="block p-3 rounded-xl hover:bg-white/10 hover:text-white transition-all"
+              <button
+                type="button"
+                onClick={() => { setHamburgerOpen(false); onGoToPortfolio(); }}
+                className="w-full text-left block p-3 rounded-xl hover:bg-white/10 hover:text-white transition-all"
               >
                 {t.menuPortfolioLink}
-              </a>
+              </button>
               <a 
                 href="#faq" 
                 onClick={() => setHamburgerOpen(false)} 
@@ -1023,6 +1042,22 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
             })}
           </div>
 
+          {/* CTA Button to full portfolio page */}
+          <div className="flex justify-center pt-4">
+            <button
+              onClick={onGoToPortfolio}
+              className={`inline-flex items-center gap-2 border text-sm font-black px-6 py-3 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                theme === 'dark'
+                  ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10'
+                  : 'border-indigo-400/50 text-indigo-600 hover:bg-indigo-50'
+              }`}
+            >
+              <Globe size={14} />
+              {lang === 'pt' ? 'Ver Portfólio Completo de Sites' : 'View Full Sites Portfolio'}
+              <ArrowRight size={14} />
+            </button>
+          </div>
+
         </div>
       </section>
 
@@ -1457,10 +1492,13 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               </ul>
             </div>
 
-            <a 
-              href="https://buy.stripe.com/bJefZa2urc3ye9YcKCf3a0l"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => {
+                setSetupPlan("basic");
+                setShowSetupModal(true);
+                // Abre o Stripe em nova aba
+                window.open("https://buy.stripe.com/bJefZa2urc3ye9YcKCf3a0l", "_blank");
+              }}
               className={`w-full mt-6 py-3 text-center font-extrabold rounded-xl text-xs cursor-pointer transition-all ${
                 theme === 'dark' 
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black shadow-md shadow-emerald-505/20' 
@@ -1468,7 +1506,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               }`}
             >
               {t.testDemo}
-            </a>
+            </button>
           </div>
 
           {/* PLAN PROFESSIONAL */}
@@ -1512,10 +1550,12 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               </ul>
             </div>
 
-            <a 
-              href="https://buy.stripe.com/7sYdR2b0Xc3y1ncbGyf3a0m"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => {
+                setSetupPlan("professional");
+                setShowSetupModal(true);
+                window.open("https://buy.stripe.com/7sYdR2b0Xc3y1ncbGyf3a0m", "_blank");
+              }}
               className={`w-full mt-6 py-3 text-center font-extrabold rounded-xl text-xs cursor-pointer transition-all ${
                 theme === 'dark' 
                   ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
@@ -1523,7 +1563,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               }`}
             >
               {t.testDemo}
-            </a>
+            </button>
           </div>
 
           {/* PLAN PREMIUM */}
@@ -1566,10 +1606,12 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               </ul>
             </div>
 
-            <a 
-              href="https://buy.stripe.com/dRm9AM8SP7Ni6HwbGyf3a0n"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => {
+                setSetupPlan("premium");
+                setShowSetupModal(true);
+                window.open("https://buy.stripe.com/dRm9AM8SP7Ni6HwbGyf3a0n", "_blank");
+              }}
               className={`w-full mt-6 py-3 text-center font-extrabold rounded-xl text-xs cursor-pointer transition-all ${
                 theme === 'dark' 
                   ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black shadow-lg shadow-amber-500/25' 
@@ -1577,11 +1619,23 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               }`}
             >
               {t.testDemo}
-            </a>
+            </button>
           </div>
 
         </div>
       </section>
+
+      {/* SetupModal — ativado após pagamento confirmado */}
+      {showSetupModal && (
+        <SetupModal
+          plan={setupPlan}
+          onClose={() => setShowSetupModal(false)}
+          onSuccess={(slug) => {
+            setShowSetupModal(false);
+            onSelectTenant(slug);
+          }}
+        />
+      )}
 
       {/* FOOTER */}
       <footer className={`border-t py-12 text-center text-xs space-y-2 font-medium ${

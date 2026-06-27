@@ -56,6 +56,49 @@ import {
 } from "../types";
 import LogoSeusiteAlugado from "./LogoSeusiteAlugado";
 
+const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.7): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(event.target?.result as string); // Fallback
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 interface TenantAdminDashboardProps {
   tenant: Tenant;
   onRefreshTenant: () => void;
@@ -115,6 +158,155 @@ export default function TenantAdminDashboard({
 
   const [editingProduct, setEditingProduct] = useState<any>(null); // Added for edit functionality
   const [editingService, setEditingService] = useState<any>(null); // Added for edit functionality
+  const [editingInventoryProduct, setEditingInventoryProduct] = useState<ProductItem | null>(null);
+
+  const [showAddPayable, setShowAddPayable] = useState(false);
+  const [editingPayable, setEditingPayable] = useState<PayableItem | null>(null);
+  const [payableTitle, setPayableTitle] = useState("");
+  const [payableDueDate, setPayableDueDate] = useState("");
+  const [payableAmount, setPayableAmount] = useState(0);
+
+  const [showAddReceivable, setShowAddReceivable] = useState(false);
+  const [editingReceivable, setEditingReceivable] = useState<ReceivableItem | null>(null);
+  const [receivableClient, setReceivableClient] = useState("");
+  const [receivableService, setReceivableService] = useState("");
+  const [receivableDueDate, setReceivableDueDate] = useState("");
+  const [receivableAmount, setReceivableAmount] = useState(0);
+
+  const startEditingInventoryProduct = (prod: ProductItem) => {
+    setEditingInventoryProduct(prod);
+    setNewProdName(prod.name);
+    setNewProdCode(prod.code);
+    setNewProdCategory(prod.category);
+    setNewProdSupplier(prod.supplier);
+    setNewProdQty(prod.quantity);
+    setNewProdMin(prod.minQuantity);
+    setNewProdCost(prod.costPrice);
+    setNewProdSale(prod.salePrice);
+    setShowAddProduct(true);
+  };
+
+  const handleDeleteInventoryProduct = (id: string) => {
+    if (!window.confirm("Deseja realmente excluir este produto do estoque?")) return;
+    const updated = {
+      ...tenant,
+      inventory: tenant.inventory.filter((p) => p.id !== id),
+    };
+    saveTenantChanges(updated);
+  };
+
+  const startEditingPayable = (pay: PayableItem) => {
+    setEditingPayable(pay);
+    setPayableTitle(pay.title);
+    setPayableDueDate(pay.dueDate);
+    setPayableAmount(pay.amount);
+    setShowAddPayable(true);
+  };
+
+  const handleDeletePayable = (id: string) => {
+    if (!window.confirm("Deseja realmente excluir esta conta a pagar?")) return;
+    saveTenantChanges({
+      ...tenant,
+      finance: {
+        ...tenant.finance,
+        payables: (tenant.finance.payables || []).filter((p) => p.id !== id),
+      },
+    });
+  };
+
+  const handleAddPayableSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payableTitle || !payableAmount || !payableDueDate) return;
+    
+    let updatedPayables = [];
+    if (editingPayable) {
+      updatedPayables = (tenant.finance.payables || []).map((p) =>
+        p.id === editingPayable.id
+          ? { ...p, title: payableTitle, dueDate: payableDueDate, amount: Number(payableAmount) }
+          : p
+      );
+    } else {
+      const newPayable: PayableItem = {
+        id: "pay-" + Date.now(),
+        title: payableTitle,
+        dueDate: payableDueDate,
+        amount: Number(payableAmount),
+        status: "pending",
+      };
+      updatedPayables = [...(tenant.finance.payables || []), newPayable];
+    }
+
+    saveTenantChanges({
+      ...tenant,
+      finance: {
+        ...tenant.finance,
+        payables: updatedPayables,
+      },
+    });
+    setShowAddPayable(false);
+    setEditingPayable(null);
+    setPayableTitle("");
+    setPayableDueDate("");
+    setPayableAmount(0);
+  };
+
+  const startEditingReceivable = (rec: ReceivableItem) => {
+    setEditingReceivable(rec);
+    setReceivableClient(rec.clientName);
+    setReceivableService(rec.serviceName);
+    setReceivableDueDate(rec.dueDate);
+    setReceivableAmount(rec.amount);
+    setShowAddReceivable(true);
+  };
+
+  const handleDeleteReceivable = (id: string) => {
+    if (!window.confirm("Deseja realmente excluir esta conta a receber?")) return;
+    saveTenantChanges({
+      ...tenant,
+      finance: {
+        ...tenant.finance,
+        receivables: (tenant.finance.receivables || []).filter((r) => r.id !== id),
+      },
+    });
+  };
+
+  const handleAddReceivableSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!receivableClient || !receivableAmount || !receivableDueDate) return;
+
+    let updatedReceivables = [];
+    if (editingReceivable) {
+      updatedReceivables = (tenant.finance.receivables || []).map((r) =>
+        r.id === editingReceivable.id
+          ? { ...r, clientName: receivableClient, serviceName: receivableService, dueDate: receivableDueDate, amount: Number(receivableAmount) }
+          : r
+      );
+    } else {
+      const newReceivable: ReceivableItem = {
+        id: "rec-" + Date.now(),
+        clientName: receivableClient,
+        serviceName: receivableService || "Serviço",
+        dueDate: receivableDueDate,
+        amount: Number(receivableAmount),
+        status: "pending",
+      };
+      updatedReceivables = [...(tenant.finance.receivables || []), newReceivable];
+    }
+
+    saveTenantChanges({
+      ...tenant,
+      finance: {
+        ...tenant.finance,
+        receivables: updatedReceivables,
+      },
+    });
+    setShowAddReceivable(false);
+    setEditingReceivable(null);
+    setReceivableClient("");
+    setReceivableService("");
+    setReceivableDueDate("");
+    setReceivableAmount(0);
+  };
 
   const startEditingProduct = (product: any) => {
     setEditingProduct(product);
@@ -162,6 +354,54 @@ export default function TenantAdminDashboard({
   const [newSalesProdDesc, setNewSalesProdDesc] = useState("");
   const [newSalesProdPrice, setNewSalesProdPrice] = useState(0);
   const [newSalesProdImg, setNewSalesProdImg] = useState("");
+  const [isCompressingSalesImg, setIsCompressingSalesImg] = useState(false);
+  const [isCompressingLogo, setIsCompressingLogo] = useState(false);
+  const [isCompressingBanner, setIsCompressingBanner] = useState(false);
+
+  const handleSalesProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingSalesImg(true);
+      const compressedBase64 = await compressImage(file);
+      setNewSalesProdImg(compressedBase64);
+    } catch (err) {
+      console.error("Erro ao comprimir imagem do produto:", err);
+      alert("Erro ao processar imagem. Tente outro formato.");
+    } finally {
+      setIsCompressingSalesImg(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingLogo(true);
+      const compressedBase64 = await compressImage(file);
+      saveIdentitySettings({ logoUrl: compressedBase64 });
+    } catch (err) {
+      console.error("Erro ao comprimir logotipo:", err);
+      alert("Erro ao processar logotipo.");
+    } finally {
+      setIsCompressingLogo(false);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingBanner(true);
+      const compressedBase64 = await compressImage(file);
+      saveIdentitySettings({ bannerUrl: compressedBase64 });
+    } catch (err) {
+      console.error("Erro ao comprimir banner:", err);
+      alert("Erro ao processar banner.");
+    } finally {
+      setIsCompressingBanner(false);
+    }
+  };
 
   // Social media platform dynamic states
   const [socialPlatform, setSocialPlatform] = useState<string>("instagram");
@@ -479,27 +719,54 @@ export default function TenantAdminDashboard({
   const handleAddProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProdName || !newProdSale) return;
-    const newProduct: ProductItem = {
-      id: "p-" + Date.now(),
-      code: newProdCode || "PROD-" + Math.floor(Math.random() * 1000),
-      name: newProdName,
-      category: newProdCategory,
-      quantity: Number(newProdQty),
-      minQuantity: Number(newProdMin),
-      supplier: newProdSupplier,
-      costPrice: Number(newProdCost),
-      salePrice: Number(newProdSale),
-    };
+    
+    let updatedInv = [];
+    if (editingInventoryProduct) {
+      updatedInv = tenant.inventory.map((p) =>
+        p.id === editingInventoryProduct.id
+          ? {
+              ...p,
+              code: newProdCode || p.code,
+              name: newProdName,
+              category: newProdCategory,
+              quantity: Number(newProdQty),
+              minQuantity: Number(newProdMin),
+              supplier: newProdSupplier,
+              costPrice: Number(newProdCost),
+              salePrice: Number(newProdSale),
+            }
+          : p
+      );
+    } else {
+      const newProduct: ProductItem = {
+        id: "p-" + Date.now(),
+        code: newProdCode || "PROD-" + Math.floor(Math.random() * 1000),
+        name: newProdName,
+        category: newProdCategory,
+        quantity: Number(newProdQty),
+        minQuantity: Number(newProdMin),
+        supplier: newProdSupplier,
+        costPrice: Number(newProdCost),
+        salePrice: Number(newProdSale),
+      };
+      updatedInv = [...(tenant.inventory || []), newProduct];
+    }
 
     const updated = {
       ...tenant,
-      inventory: [...(tenant.inventory || []), newProduct],
+      inventory: updatedInv,
     };
     saveTenantChanges(updated);
     setShowAddProduct(false);
+    setEditingInventoryProduct(null);
     setNewProdName("");
     setNewProdCode("");
+    setNewProdCategory("Cremes");
     setNewProdSupplier("");
+    setNewProdQty(10);
+    setNewProdMin(3);
+    setNewProdCost(12);
+    setNewProdSale(35);
   };
 
   // Adjust product quantity (Inputs/Outputs)
@@ -821,7 +1088,7 @@ export default function TenantAdminDashboard({
                     Clientes Cadastrados
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-2xl font-black text-slate-900">
+                    <span className="text-xl font-black text-slate-900">
                       {clientCount}
                     </span>
                     <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-2.5 py-0.5 rounded-full font-bold">
@@ -834,7 +1101,7 @@ export default function TenantAdminDashboard({
                     Agendamentos Ativos
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-2xl font-black text-slate-900">
+                    <span className="text-xl font-black text-slate-900">
                       {activeBookings.length}
                     </span>
                     <span className="text-xs text-slate-500 font-semibold">
@@ -847,11 +1114,17 @@ export default function TenantAdminDashboard({
                     Lucro Líquido Real
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span
-                      className={`text-2xl font-black ${netProfit >= 0 ? "text-emerald-600" : "text-red-500"}`}
-                    >
-                      R$ {netProfit.toFixed(2)}
-                    </span>
+                    <div className="flex flex-col space-y-0.5">
+                      <span className="text-xs font-black text-emerald-600 flex items-center gap-0.5">
+                        ▲ R$ {totalIncomes.toFixed(2)}
+                      </span>
+                      <span className="text-xs font-black text-red-500 flex items-center gap-0.5">
+                        ▼ R$ {totalExpenses.toFixed(2)}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-medium mt-0.5 block">
+                        Líq: <span className={`font-black ${netProfit >= 0 ? "text-emerald-600" : "text-red-500"}`}>R$ {netProfit.toFixed(2)}</span>
+                      </span>
+                    </div>
                     <span className="text-[10px] text-slate-400 font-medium">
                       entrada/saída
                     </span>
@@ -863,11 +1136,11 @@ export default function TenantAdminDashboard({
                   </span>
                   <div className="flex items-baseline justify-between">
                     <span
-                      className={`text-2xl font-black ${lowStockCount > 0 ? "text-amber-500 animate-pulse" : "text-slate-700"}`}
+                      className={`text-xl font-black ${lowStockCount > 0 ? "text-amber-500 animate-pulse" : "text-slate-700"}`}
                     >
                       {lowStockCount}
                     </span>
-                    <span className="text-xs text-slate-550 font-semibold">
+                    <span className="text-xs text-slate-555 font-semibold">
                       itens pendentes
                     </span>
                   </div>
@@ -1964,7 +2237,7 @@ export default function TenantAdminDashboard({
                   </div>
                 </div>
 
-                {/* PAYABLES AND RECEIVABLES PANELS */}
+                {/* Coluna Lateral de Contas a Pagar e Receber */}
                 <div className="space-y-4">
                   {/* Contas a Pagar */}
                   <div className="bg-white border border-slate-200 p-4 rounded-xl space-y-3 shadow-sm">
@@ -1972,10 +2245,66 @@ export default function TenantAdminDashboard({
                       <h5 className="font-bold text-xs text-amber-600">
                         Contas a Pagar (Futuro)
                       </h5>
-                      <button className="text-amber-600 hover:text-amber-700">
+                      <button
+                        onClick={() => {
+                          setShowAddPayable(!showAddPayable);
+                          setEditingPayable(null);
+                          setPayableTitle("");
+                          setPayableDueDate("");
+                          setPayableAmount(0);
+                        }}
+                        className="text-amber-600 hover:text-amber-700 cursor-pointer"
+                      >
                         <Plus size={14} />
                       </button>
                     </div>
+                    {showAddPayable && (
+                      <form onSubmit={handleAddPayableSubmit} className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                        <span className="font-semibold text-[10px] text-amber-600 block">
+                          {editingPayable ? "Editar Conta a Pagar" : "Nova Conta a Pagar"}
+                        </span>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Título (Ex: Conta de Luz)"
+                          value={payableTitle}
+                          onChange={(e) => setPayableTitle(e.target.value)}
+                          className="w-full p-2 bg-white border border-slate-250 text-slate-800 rounded font-medium outline-none text-[11px]"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            required
+                            value={payableDueDate}
+                            onChange={(e) => setPayableDueDate(e.target.value)}
+                            className="w-full p-2 bg-white border border-slate-250 text-slate-800 rounded font-medium outline-none text-[11px]"
+                          />
+                          <input
+                            type="number"
+                            required
+                            placeholder="Valor"
+                            value={payableAmount || ""}
+                            onChange={(e) => setPayableAmount(Number(e.target.value))}
+                            className="w-full p-2 bg-white border border-slate-250 text-slate-800 rounded font-medium outline-none text-[11px]"
+                          />
+                        </div>
+                        <div className="flex gap-1.5 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => { setShowAddPayable(false); setEditingPayable(null); }}
+                            className="px-2 py-1 bg-slate-200 text-slate-700 rounded font-semibold text-[10px] cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-2 py-1 bg-amber-500 text-neutral-950 rounded font-bold text-[10px] cursor-pointer"
+                          >
+                            Salvar
+                          </button>
+                        </div>
+                      </form>
+                    )}
                     <div className="space-y-2">
                       {tenant.finance.payables?.length === 0 ? (
                         <p className="text-slate-500 text-[11px]">
@@ -1987,22 +2316,30 @@ export default function TenantAdminDashboard({
                             key={pay.id}
                             className="p-2 bg-slate-50 border border-slate-100 rounded flex items-center justify-between"
                           >
-                            <div>
-                              <strong className="block text-[11px] text-slate-800">
+                            <div className="truncate flex-1 pr-2">
+                              <strong className="block text-[11px] text-slate-800 truncate">
                                 {pay.title}
                               </strong>
                               <span className="block text-[9px] text-slate-500">
                                 Vence: {pay.dueDate}
                               </span>
                             </div>
-                            <span className="text-[11px] text-red-600 font-bold">
+                            <span className="text-[11px] text-red-600 font-bold shrink-0">
                               R$ {pay.amount.toFixed(2)}
                             </span>
-                            <div className="flex gap-1 ml-2">
-                              <button className="text-slate-400 hover:text-indigo-600">
+                            <div className="flex gap-1 ml-2 shrink-0">
+                              <button
+                                onClick={() => startEditingPayable(pay)}
+                                className="text-slate-400 hover:text-indigo-650 cursor-pointer"
+                                title="Editar"
+                              >
                                 <Edit2 size={12} />
                               </button>
-                              <button className="text-slate-400 hover:text-red-600">
+                              <button
+                                onClick={() => handleDeletePayable(pay.id)}
+                                className="text-slate-400 hover:text-red-650 cursor-pointer"
+                                title="Excluir"
+                              >
                                 <Trash2 size={12} />
                               </button>
                             </div>
@@ -2011,17 +2348,81 @@ export default function TenantAdminDashboard({
                       )}
                     </div>
                   </div>
-
+ 
                   {/* Contas a Receber */}
                   <div className="bg-white border border-slate-200 p-4 rounded-xl space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <h5 className="font-bold text-xs text-blue-600">
                         Contas a Receber (Em Aberto)
                       </h5>
-                      <button className="text-blue-600 hover:text-blue-700">
+                      <button
+                        onClick={() => {
+                          setShowAddReceivable(!showAddReceivable);
+                          setEditingReceivable(null);
+                          setReceivableClient("");
+                          setReceivableService("");
+                          setReceivableDueDate("");
+                          setReceivableAmount(0);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 cursor-pointer"
+                      >
                         <Plus size={14} />
                       </button>
                     </div>
+                    {showAddReceivable && (
+                      <form onSubmit={handleAddReceivableSubmit} className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                        <span className="font-semibold text-[10px] text-blue-600 block">
+                          {editingReceivable ? "Editar Conta a Receber" : "Nova Conta a Receber"}
+                        </span>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Cliente"
+                          value={receivableClient}
+                          onChange={(e) => setReceivableClient(e.target.value)}
+                          className="w-full p-2 bg-white border border-slate-250 text-slate-800 rounded font-medium outline-none text-[11px]"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Serviço (Opcional)"
+                          value={receivableService}
+                          onChange={(e) => setReceivableService(e.target.value)}
+                          className="w-full p-2 bg-white border border-slate-250 text-slate-800 rounded font-medium outline-none text-[11px]"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            required
+                            value={receivableDueDate}
+                            onChange={(e) => setReceivableDueDate(e.target.value)}
+                            className="w-full p-2 bg-white border border-slate-250 text-slate-800 rounded font-medium outline-none text-[11px]"
+                          />
+                          <input
+                            type="number"
+                            required
+                            placeholder="Valor"
+                            value={receivableAmount || ""}
+                            onChange={(e) => setReceivableAmount(Number(e.target.value))}
+                            className="w-full p-2 bg-white border border-slate-250 text-slate-800 rounded font-medium outline-none text-[11px]"
+                          />
+                        </div>
+                        <div className="flex gap-1.5 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => { setShowAddReceivable(false); setEditingReceivable(null); }}
+                            className="px-2 py-1 bg-slate-200 text-slate-700 rounded font-semibold text-[10px] cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-2 py-1 bg-blue-500 text-white rounded font-bold text-[10px] cursor-pointer"
+                          >
+                            Salvar
+                          </button>
+                        </div>
+                      </form>
+                    )}
                     <div className="space-y-2">
                       {tenant.finance.receivables?.length === 0 ? (
                         <p className="text-slate-500 text-[11px]">
@@ -2033,22 +2434,30 @@ export default function TenantAdminDashboard({
                             key={rec.id}
                             className="p-2 bg-slate-50 border border-slate-100 rounded flex items-center justify-between"
                           >
-                            <div>
-                              <strong className="block text-[11px] text-slate-800">
+                            <div className="truncate flex-1 pr-2">
+                              <strong className="block text-[11px] text-slate-800 truncate">
                                 {rec.clientName}
                               </strong>
                               <span className="block text-[9px] text-slate-500">
                                 Espere p/: {rec.dueDate}
                               </span>
                             </div>
-                            <span className="text-[11px] text-emerald-600 font-bold">
+                            <span className="text-[11px] text-emerald-600 font-bold shrink-0">
                               R$ {rec.amount.toFixed(2)}
                             </span>
-                            <div className="flex gap-1 ml-2">
-                              <button className="text-slate-400 hover:text-indigo-600">
+                            <div className="flex gap-1 ml-2 shrink-0">
+                              <button
+                                onClick={() => startEditingReceivable(rec)}
+                                className="text-slate-400 hover:text-indigo-655 cursor-pointer"
+                                title="Editar"
+                              >
                                 <Edit2 size={12} />
                               </button>
-                              <button className="text-slate-400 hover:text-red-600">
+                              <button
+                                onClick={() => handleDeleteReceivable(rec.id)}
+                                className="text-slate-400 hover:text-red-655 cursor-pointer"
+                                title="Excluir"
+                              >
                                 <Trash2 size={12} />
                               </button>
                             </div>
@@ -2086,8 +2495,11 @@ export default function TenantAdminDashboard({
               {showAddProduct && (
                 <form
                   onSubmit={handleAddProductSubmit}
-                  className="p-4 bg-white border border-slate-200 rounded-lg space-y-3 text-xs shadow-md text-slate-800"
+                  className="p-4 bg-white border border-slate-200 rounded-lg space-y-3 text-xs shadow-md text-slate-800 animate-fade-in"
                 >
+                  <h3 className="font-bold text-indigo-650 text-sm">
+                    {editingInventoryProduct ? "Editar Produto no Estoque" : "Cadastrar Produto Novo"}
+                  </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <input
                       type="text"
@@ -2158,7 +2570,18 @@ export default function TenantAdminDashboard({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowAddProduct(false)}
+                      onClick={() => {
+                        setShowAddProduct(false);
+                        setEditingInventoryProduct(null);
+                        setNewProdName("");
+                        setNewProdCode("");
+                        setNewProdCategory("Cremes");
+                        setNewProdSupplier("");
+                        setNewProdQty(10);
+                        setNewProdMin(3);
+                        setNewProdCost(12);
+                        setNewProdSale(35);
+                      }}
                       className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded cursor-pointer transition-all border border-slate-205"
                     >
                       Cancelar
@@ -2176,8 +2599,24 @@ export default function TenantAdminDashboard({
                       return (
                         <div
                           key={prod.id}
-                          className="bg-white p-4 border border-slate-200 rounded-xl space-y-2"
+                          className="bg-white p-4 border border-slate-200 rounded-xl space-y-2 relative"
                         >
+                          <div className="absolute top-4 right-4 flex gap-1">
+                            <button
+                              onClick={() => startEditingInventoryProduct(prod)}
+                              className="p-1 text-slate-400 hover:text-indigo-650 rounded transition-colors cursor-pointer"
+                              title="Editar"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteInventoryProduct(prod.id)}
+                              className="p-1 text-slate-400 hover:text-red-650 rounded transition-colors cursor-pointer"
+                              title="Excluir"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                           <span className="font-mono text-slate-500">
                             {prod.code}
                           </span>
@@ -2653,17 +3092,37 @@ export default function TenantAdminDashboard({
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-slate-655 font-bold block">
-                          URL da Foto do Produto
-                        </label>
+                      <div className="space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <label className="text-slate-655 font-bold block">
+                            Foto do Produto (URL ou Upload)
+                          </label>
+                          {isCompressingSalesImg && (
+                            <span className="text-[10px] text-indigo-600 font-bold animate-pulse">
+                              ⚡ Comprimindo imagem...
+                            </span>
+                          )}
+                        </div>
                         <input
                           type="url"
-                          placeholder="https://images.unsplash.com/photo-..."
+                          placeholder="Cole a URL da foto (opcional se fizer upload)"
                           value={newSalesProdImg}
                           onChange={(e) => setNewSalesProdImg(e.target.value)}
                           className="w-full p-2.5 bg-white border border-slate-250 text-slate-800 rounded focus:ring-1 focus:ring-indigo-500 outline-none placeholder-slate-455 font-medium"
                         />
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSalesProductImageUpload}
+                            className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                          />
+                          {newSalesProdImg && (
+                            <span className="text-[10px] text-emerald-600 font-bold">
+                              ✓ Imagem vinculada
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="space-y-1.5">
@@ -2695,7 +3154,7 @@ export default function TenantAdminDashboard({
                         </button>
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white font-bold rounded-lg shadow cursor-pointer transition-all"
+                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow cursor-pointer transition-all"
                         >
                           Cadastrar Produto ✓
                         </button>
@@ -2954,6 +3413,19 @@ export default function TenantAdminDashboard({
                         </div>
                       )}
                     </div>
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                      />
+                      {isCompressingLogo && (
+                        <span className="text-[10px] text-indigo-600 font-bold animate-pulse">
+                          ⚡ Comprimindo...
+                        </span>
+                      )}
+                    </div>
                     {/* Presets */}
                     <div className="flex flex-wrap gap-1.5 pt-1 items-center">
                       <span className="text-slate-500 font-bold text-[10px]">
@@ -3014,6 +3486,19 @@ export default function TenantAdminDashboard({
                             className="w-full h-full object-cover"
                           />
                         </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerUpload}
+                        className="text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                      />
+                      {isCompressingBanner && (
+                        <span className="text-[10px] text-indigo-600 font-bold animate-pulse">
+                          ⚡ Comprimindo...
+                        </span>
                       )}
                     </div>
                     {/* Presets */}

@@ -445,6 +445,22 @@ app.get("/api/tenants/:slug", async (req, res) => {
   }
 });
 
+// GET /api/check-slug/:slug — verifica se um slug está disponível para uso
+app.get("/api/check-slug/:slug", async (req, res) => {
+  try {
+    const slug = req.params.slug.toLowerCase().replace(/[^a-z0-9\-]/g, "");
+    if (!slug || slug.length < 3) {
+      res.json({ available: false, reason: "Slug deve ter pelo menos 3 caracteres" });
+      return;
+    }
+    const { data: tenantRow } = await supabase
+      .from("tenants").select("id").ilike("slug", slug).maybeSingle();
+    res.json({ available: !tenantRow, slug });
+  } catch (err: any) {
+    res.status(500).json({ available: false, reason: err.message });
+  }
+});
+
 // POST /api/tenants — cria ou atualiza um tenant completo
 app.post("/api/tenants", async (req, res) => {
   const updatedTenant: Tenant = req.body;
