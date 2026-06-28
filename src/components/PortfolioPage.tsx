@@ -124,12 +124,12 @@ const SitePreviewCard: React.FC<{
             <img
               src={tenant.logoUrl}
               alt={tenant.name}
-              className="w-14 h-14 rounded-full object-cover border-2 border-white/10 shadow-xl"
+              className="w-20 h-20 rounded-full object-cover border-2 border-white/15 shadow-2xl"
               referrerPolicy="no-referrer"
             />
           ) : (
             <div
-              className={`w-14 h-14 rounded-full bg-gradient-to-br ${theme.bg} border ${theme.border} flex items-center justify-center text-2xl`}
+              className={`w-20 h-20 rounded-full bg-gradient-to-br ${theme.bg} border ${theme.border} flex items-center justify-center text-3xl shadow-2xl`}
             >
               🏪
             </div>

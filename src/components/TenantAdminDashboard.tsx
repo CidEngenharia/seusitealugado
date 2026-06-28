@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -43,6 +43,7 @@ import {
   Zap,
   ArrowRightLeft,
   Settings,
+  Save,
 } from "lucide-react";
 import {
   Tenant,
@@ -361,6 +362,12 @@ export default function TenantAdminDashboard({
   const [isCompressingSalesImg, setIsCompressingSalesImg] = useState(false);
   const [isCompressingLogo, setIsCompressingLogo] = useState(false);
   const [isCompressingBanner, setIsCompressingBanner] = useState(false);
+  const [isSavingSiteSettings, setIsSavingSiteSettings] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState<Tenant>(tenant);
+
+  useEffect(() => {
+    setSettingsDraft(tenant);
+  }, [tenant.id]);
 
   const handleSalesProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -833,7 +840,14 @@ export default function TenantAdminDashboard({
 
   // Save Identity Setting changes
   const saveIdentitySettings = (updates: Partial<Tenant>) => {
-    saveTenantChanges({ ...tenant, ...updates });
+    setSettingsDraft((current) => ({ ...current, ...updates }));
+  };
+
+  const handleSaveSiteSettings = async () => {
+    setIsSavingSiteSettings(true);
+    await saveTenantChanges(settingsDraft);
+    setIsSavingSiteSettings(false);
+    alert("Configurações do site salvas com sucesso!");
   };
 
   // Calc quick stats for current business
@@ -3264,6 +3278,23 @@ export default function TenantAdminDashboard({
           {/* TAB: SETTINGS & BRAND COR SETUP */}
           {activeTab === "settings" && (
             <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold text-slate-900">
+                    Configuração do Site
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveSiteSettings}
+                  disabled={isSavingSiteSettings}
+                  className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold text-xs px-5 py-2.5 rounded-lg cursor-pointer disabled:cursor-wait transition-colors shadow-sm"
+                >
+                  <Save size={14} />
+                  {isSavingSiteSettings ? "Salvando..." : "Salvar Alterações"}
+                </button>
+              </div>
+
               <div className="bg-white border border-slate-200 p-5 rounded-xl space-y-4 shadow-sm">
                 <h3 className="text-base font-bold text-slate-800">
                   Identidade Visual Customizada (Site Rápido)
@@ -3292,9 +3323,9 @@ export default function TenantAdminDashboard({
                                   : c === "emerald"
                                     ? "bg-emerald-500 border-emerald-300"
                                     : "bg-zinc-650 border-zinc-400"
-                          } ${tenant.themeColor === c ? "scale-110 ring-2 ring-white border-white" : "opacity-80"}`}
+                          } ${settingsDraft.themeColor === c ? "scale-110 ring-2 ring-white border-white" : "opacity-80"}`}
                         >
-                          {tenant.themeColor === c && (
+                          {settingsDraft.themeColor === c && (
                             <Check size={16} className="text-white font-bold" />
                           )}
                         </button>
@@ -3308,7 +3339,7 @@ export default function TenantAdminDashboard({
                       Fonte de Texto
                     </label>
                     <select
-                      value={tenant.fontFamily}
+                      value={settingsDraft.fontFamily}
                       onChange={(e) =>
                         saveIdentitySettings({
                           fontFamily: e.target.value as
@@ -3337,7 +3368,7 @@ export default function TenantAdminDashboard({
                       Layout Estrutural (Templates)
                     </label>
                     <select
-                      value={tenant.template}
+                      value={settingsDraft.template}
                       onChange={(e) =>
                         saveIdentitySettings({
                           template: e.target.value as
@@ -3364,15 +3395,15 @@ export default function TenantAdminDashboard({
                   <div className="space-y-2 relative">
                     <label className="block text-slate-500 font-bold flex items-center justify-between">
                       <span>Modo Visual Padrão</span>
-                      {tenant.plan !== "premium" && userRole !== "superadmin" && (
+                      {settingsDraft.plan !== "premium" && userRole !== "superadmin" && (
                         <span className="text-[9px] bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-full flex items-center gap-1 font-bold">
                           <Lock size={8} /> Premium
                         </span>
                       )}
                     </label>
                     <select
-                      value={tenant.themeMode || "light"}
-                      disabled={tenant.plan !== "premium" && userRole !== "superadmin"}
+                      value={settingsDraft.themeMode || "light"}
+                      disabled={settingsDraft.plan !== "premium" && userRole !== "superadmin"}
                       onChange={(e) =>
                         saveIdentitySettings({
                           themeMode: e.target.value as "light" | "dark",
@@ -3383,7 +3414,7 @@ export default function TenantAdminDashboard({
                       <option value="light">Modo Claro (Padrão)</option>
                       <option value="dark">Modo Escuro (Sleek Dark)</option>
                     </select>
-                    {tenant.plan !== "premium" && userRole !== "superadmin" ? (
+                    {settingsDraft.plan !== "premium" && userRole !== "superadmin" ? (
                       <p className="text-[9px] text-amber-600/80 mt-1 leading-tight">
                         Disponível apenas para parceiros no plano **Premium**.
                       </p>
@@ -3404,18 +3435,18 @@ export default function TenantAdminDashboard({
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={tenant.logoUrl}
+                        value={settingsDraft.logoUrl}
                         onChange={(e) =>
                           saveIdentitySettings({ logoUrl: e.target.value })
                         }
                         placeholder="Cole o endereço da foto da capa"
                         className="flex-1 p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none"
                       />
-                      {tenant.logoUrl && (
+                      {settingsDraft.logoUrl && (
                         <div className="w-10 h-10 rounded border border-slate-200 bg-slate-50 overflow-hidden shrink-0">
                           <img
                             referrerPolicy="no-referrer"
-                            src={tenant.logoUrl}
+                            src={settingsDraft.logoUrl}
                             alt="Preview"
                             className="w-full h-full object-cover"
                           />
@@ -3479,18 +3510,18 @@ export default function TenantAdminDashboard({
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={tenant.bannerUrl}
+                        value={settingsDraft.bannerUrl}
                         onChange={(e) =>
                           saveIdentitySettings({ bannerUrl: e.target.value })
                         }
                         placeholder="Cole o endereço do banner da página"
                         className="flex-1 p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none"
                       />
-                      {tenant.bannerUrl && (
+                      {settingsDraft.bannerUrl && (
                         <div className="w-10 h-10 rounded border border-slate-200 bg-slate-50 overflow-hidden shrink-0">
                           <img
                             referrerPolicy="no-referrer"
-                            src={tenant.bannerUrl}
+                            src={settingsDraft.bannerUrl}
                             alt="Preview Banner"
                             className="w-full h-full object-cover"
                           />
@@ -3556,9 +3587,9 @@ export default function TenantAdminDashboard({
                 </h3>
 
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    alert("Configurações atualizadas!");
+                    await handleSaveSiteSettings();
                   }}
                   className="space-y-4 text-xs"
                 >
@@ -3569,9 +3600,12 @@ export default function TenantAdminDashboard({
                       </label>
                       <input
                         type="text"
-                        value={tenant.name}
+                        value={settingsDraft.name}
                         onChange={(e) =>
-                          saveTenantChanges({ ...tenant, name: e.target.value })
+                          setSettingsDraft((current) => ({
+                            ...current,
+                            name: e.target.value,
+                          }))
                         }
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded"
                       />
@@ -3582,12 +3616,12 @@ export default function TenantAdminDashboard({
                       </label>
                       <input
                         type="text"
-                        value={tenant.openingHours}
+                        value={settingsDraft.openingHours}
                         onChange={(e) =>
-                          saveTenantChanges({
-                            ...tenant,
+                          setSettingsDraft((current) => ({
+                            ...current,
                             openingHours: e.target.value,
-                          })
+                          }))
                         }
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded"
                       />
@@ -3600,12 +3634,12 @@ export default function TenantAdminDashboard({
                     </label>
                     <input
                       type="text"
-                      value={tenant.address}
+                      value={settingsDraft.address}
                       onChange={(e) =>
-                        saveTenantChanges({
-                          ...tenant,
+                        setSettingsDraft((current) => ({
+                          ...current,
                           address: e.target.value,
-                        })
+                        }))
                       }
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded"
                     />
@@ -3618,15 +3652,15 @@ export default function TenantAdminDashboard({
                       </label>
                       <input
                         type="text"
-                        value={tenant.socials.whatsapp}
+                        value={settingsDraft.socials.whatsapp}
                         onChange={(e) =>
-                          saveTenantChanges({
-                            ...tenant,
+                          setSettingsDraft((current) => ({
+                            ...current,
                             socials: {
-                              ...tenant.socials,
+                              ...current.socials,
                               whatsapp: e.target.value,
                             },
-                          })
+                          }))
                         }
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none"
                       />
@@ -3637,15 +3671,15 @@ export default function TenantAdminDashboard({
                       </label>
                       <input
                         type="text"
-                        value={tenant.socials.phone || ""}
+                        value={settingsDraft.socials.phone || ""}
                         onChange={(e) =>
-                          saveTenantChanges({
-                            ...tenant,
+                          setSettingsDraft((current) => ({
+                            ...current,
                             socials: {
-                              ...tenant.socials,
+                              ...current.socials,
                               phone: e.target.value,
                             },
-                          })
+                          }))
                         }
                         placeholder="Ex: (11) 4002-8922"
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none"
@@ -3657,15 +3691,15 @@ export default function TenantAdminDashboard({
                       </label>
                       <input
                         type="text"
-                        value={tenant.socials.email}
+                        value={settingsDraft.socials.email}
                         onChange={(e) =>
-                          saveTenantChanges({
-                            ...tenant,
+                          setSettingsDraft((current) => ({
+                            ...current,
                             socials: {
-                              ...tenant.socials,
+                              ...current.socials,
                               email: e.target.value,
                             },
-                          })
+                          }))
                         }
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none"
                       />
@@ -3733,13 +3767,13 @@ export default function TenantAdminDashboard({
                           }
                           // Save in socials object
                           const updatedSocials = {
-                            ...tenant.socials,
+                            ...settingsDraft.socials,
                             [socialPlatform]: socialLink,
                           };
-                          saveTenantChanges({
-                            ...tenant,
+                          setSettingsDraft((current) => ({
+                            ...current,
                             socials: updatedSocials,
-                          });
+                          }));
                           alert(
                             `Rede social ${socialPlatform} cadastrada com sucesso!`,
                           );
@@ -3761,8 +3795,8 @@ export default function TenantAdminDashboard({
                         "twitter",
                       ].map((platform) => {
                         const linkValue =
-                          tenant.socials[
-                            platform as keyof typeof tenant.socials
+                          settingsDraft.socials[
+                            platform as keyof typeof settingsDraft.socials
                           ];
                         if (!linkValue) return null;
                         return (
@@ -3781,14 +3815,14 @@ export default function TenantAdminDashboard({
                             <button
                               type="button"
                               onClick={() => {
-                                const copy = { ...tenant.socials };
+                                const copy = { ...settingsDraft.socials };
                                 delete copy[
-                                  platform as keyof typeof tenant.socials
+                                  platform as keyof typeof settingsDraft.socials
                                 ];
-                                saveTenantChanges({
-                                  ...tenant,
+                                setSettingsDraft((current) => ({
+                                  ...current,
                                   socials: copy,
-                                });
+                                }));
                                 alert(
                                   `Rede social de ${platform} removida com sucesso.`,
                                 );
@@ -3802,6 +3836,7 @@ export default function TenantAdminDashboard({
                       })}
                     </div>
                   </div>
+
                 </form>
               </div>
             </div>
