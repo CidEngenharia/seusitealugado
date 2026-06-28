@@ -481,7 +481,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
         target="_blank" 
         rel="noopener noreferrer"
         referrerPolicy="no-referrer"
-        className="fixed bottom-6 right-6 z-50 group flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95"
+        className="fixed bottom-5 right-4 md:bottom-6 md:right-6 z-50 group flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95"
         title="Falar no WhatsApp"
       >
         <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
@@ -491,14 +491,14 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
         <img 
           src="/whatsapp_transparent.png" 
           alt="WhatsApp" 
-          className="w-16 h-16 object-contain"
+          className="w-14 h-14 md:w-16 md:h-16 object-contain"
         />
       </a>
 
       {/* SCROLL TO TOP BUTTON */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-24 right-8 z-50 p-3 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-yellow-400 border border-yellow-400/30 hover:border-yellow-400 shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+        className="fixed bottom-20 right-5 md:bottom-24 md:right-8 z-50 p-2.5 md:p-3 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-yellow-400 border border-yellow-400/30 hover:border-yellow-400 shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
         title="Voltar ao Topo"
       >
         <svg className="w-5 h-5 stroke-current" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -589,12 +589,12 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       )}
 
       {/* STICKY HEADER */}
-      <header className={`fixed top-4 left-4 right-4 z-40 transition-colors duration-300 backdrop-blur-md rounded-2xl shadow-lg border ${
+      <header className={`fixed top-2 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-40 transition-colors duration-300 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-lg border ${
         theme === 'dark' ? 'bg-zinc-950/80 border-zinc-800' : 'bg-white/80 border-slate-100'
       }`}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-2 min-w-0">
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Hamburger button on the left */}
             <button 
               onClick={() => setHamburgerOpen(true)}
@@ -605,12 +605,17 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
               <Menu size={22} className={theme === 'dark' ? 'text-zinc-200' : 'text-slate-800'} />
             </button>
 
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-              <LogoSeusiteAlugado size="md" />
+            <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
+              <span className="sm:hidden">
+                <LogoSeusiteAlugado size="sm" />
+              </span>
+              <span className="hidden sm:inline-flex">
+                <LogoSeusiteAlugado size="md" />
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Language Dropdown Selector with Flags */}
             <div className="relative">
               <button 
@@ -672,7 +677,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
             </div>
             <button 
               onClick={() => onGoToSuperAdmin()}
-              className="text-xs font-bold text-black bg-yellow-400 px-4 py-2 rounded-lg hover:bg-yellow-500 cursor-pointer">Login / Cadastro</button>
+              className="text-[11px] sm:text-xs font-bold text-black bg-yellow-400 px-3 sm:px-4 py-2 rounded-lg hover:bg-yellow-500 cursor-pointer leading-tight">Login / Cadastro</button>
 
             {/* Quick Theme Toggle */}
             <button 
@@ -690,55 +695,55 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       </header>
 
       {/* HERO SECTION */}
-      <section className="relative px-6 py-20 md:py-28 text-center max-w-4xl mx-auto space-y-6">
+      <section className="relative px-4 sm:px-6 pt-40 pb-16 sm:pt-36 md:pt-40 md:pb-28 text-center max-w-4xl mx-auto space-y-5 sm:space-y-6">
         
         {/* Ambient background glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] md:w-[450px] h-[450px] bg-indigo-500/10 rounded-full filter blur-3xl -z-10"></div>
         
-        <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1 rounded-full text-xs font-extrabold text-indigo-400">
+        <div className="inline-flex max-w-full items-center justify-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full text-[11px] sm:text-xs font-extrabold text-indigo-400">
           <Sparkles size={11} className="animate-pulse" />
-          <span>{t.heroTag}</span>
+          <span className="truncate">{t.heroTag}</span>
         </div>
 
         <h1 className="leading-tight text-center">
           {lang === 'pt' ? (
             <>
-              <span className="text-yellow-400 font-black text-5xl md:text-7xl lg:text-8xl block tracking-tight mb-3">
+              <span className="text-yellow-400 font-black text-4xl sm:text-5xl md:text-7xl lg:text-8xl block tracking-tight mb-2 sm:mb-3">
                 Alugue seu
               </span>
-              <span className="text-fuchsia-400 animate-pulse text-4xl md:text-6xl lg:text-7xl font-extrabold block tracking-tight mb-3 pr-2 drop-shadow-[0_2px_10px_rgba(168,85,247,0.45)]">
+              <span className="text-fuchsia-400 animate-pulse text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold block tracking-tight mb-2 sm:mb-3 drop-shadow-[0_2px_10px_rgba(168,85,247,0.45)]">
                 Site profissional
               </span>
-              <span className="text-zinc-900 dark:text-zinc-100 font-medium text-2xl md:text-3xl lg:text-4xl block tracking-normal">
+              <span className={`${theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900'} font-medium text-xl sm:text-2xl md:text-3xl lg:text-4xl block tracking-normal`}>
                 em apenas 20 segundos.
               </span>
             </>
           ) : (
             <>
-              <span className="text-yellow-400 font-black text-5xl md:text-7xl lg:text-8xl block tracking-tight mb-3">
+              <span className="text-yellow-400 font-black text-4xl sm:text-5xl md:text-7xl lg:text-8xl block tracking-tight mb-2 sm:mb-3">
                 Rent your
               </span>
-              <span className="text-purple-300 animate-pulse text-4xl md:text-6xl lg:text-7xl font-extrabold block tracking-tight mb-3 pr-2 drop-shadow-[0_2px_10px_rgba(168,85,247,0.45)]">
+              <span className="text-purple-300 animate-pulse text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold block tracking-tight mb-2 sm:mb-3 drop-shadow-[0_2px_10px_rgba(168,85,247,0.45)]">
                 Professional site
               </span>
-              <span className="text-white font-medium text-2xl md:text-3xl lg:text-4xl block tracking-normal">
+              <span className="text-white font-medium text-xl sm:text-2xl md:text-3xl lg:text-4xl block tracking-normal">
                 in just 20 seconds.
               </span>
             </>
           )}
         </h1>
 
-        <p className={`text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-medium ${
+        <p className={`text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-medium px-1 ${
           theme === 'dark' ? 'text-zinc-400' : 'text-slate-500'
         }`}>
           {t.heroSub}
         </p>
 
         {/* SEARCH / INTERACTIVE MARKETPLACE PORTAL */}
-        <div className={`max-w-xl mx-auto p-2.5 rounded-full shadow-2xl flex items-center gap-2 border transition-all ${
-          theme === 'dark' ? 'bg-zinc-90 w-full bg-zinc-900/80 border-zinc-800' : 'bg-white border-slate-200/80'
+        <div className={`w-full max-w-xl mx-auto p-2.5 rounded-3xl sm:rounded-full shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border transition-all ${
+          theme === 'dark' ? 'bg-zinc-900/80 border-zinc-800' : 'bg-white border-slate-200/80'
         }`}>
-          <button className="p-2 text-zinc-400 hover:text-indigo-600">
+          <button className="hidden sm:block p-2 text-zinc-400 hover:text-indigo-600" aria-label="Adicionar busca">
             <span className="text-xl font-bold">+</span>
           </button>
           
@@ -747,12 +752,12 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
             placeholder="Buscar sites..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent p-1.5 text-sm focus:outline-none placeholder:text-zinc-500"
+            className="w-full min-w-0 bg-transparent px-4 py-3 sm:p-1.5 text-sm focus:outline-none placeholder:text-zinc-500"
             onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit(e)}
           />
 
           <select 
-            className="bg-transparent text-xs text-zinc-500 font-bold focus:outline-none cursor-pointer"
+            className="w-full sm:w-auto bg-transparent px-4 py-3 sm:p-0 text-xs text-zinc-500 font-bold focus:outline-none cursor-pointer border-y border-zinc-800/40 sm:border-0"
             onChange={(e) => {
               if (e.target.value) {
                 console.log("Categoria selecionada:", e.target.value);
@@ -783,7 +788,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
           <button 
             type="button" 
             onClick={handleSearchSubmit}
-            className="bg-yellow-400 hover:bg-yellow-500 text-black font-black px-6 py-2.5 text-xs rounded-full transition-all cursor-pointer shadow-md shadow-yellow-500/20"
+            className="w-full sm:w-auto whitespace-nowrap bg-yellow-400 hover:bg-yellow-500 text-black font-black px-6 py-3 sm:py-2.5 text-xs rounded-full transition-all cursor-pointer shadow-md shadow-yellow-500/20"
           >
             {t.searchBtn}
           </button>
