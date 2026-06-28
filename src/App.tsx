@@ -13,6 +13,10 @@ import PortfolioPage from "./components/PortfolioPage";
 import AuthModal from "./components/AuthModal";
 import LoadingScreen from "./components/LoadingScreen";
 import { Tenant } from "./types";
+import fallbackTenants from "../database.json";
+
+const LOCAL_FALLBACK_TENANTS = fallbackTenants as Tenant[];
+const RESERVED_ROUTES = new Set(["", "portfolio", "busca", "admin"]);
 
 export default function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -26,17 +30,26 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'>('landing');
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
+  const updateBrowserPath = (path: string) => {
+    const nextPath = path.startsWith("/") ? path : `/${path}`;
+    window.history.pushState(null, "", nextPath === "/" ? "/" : nextPath);
+  };
+
   // Fetch tenants on mount
   const fetchTenants = async () => {
     try {
       const response = await fetch("/api/tenants");
       if (response.ok) {
         const data = await response.json();
-        setTenants(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setTenants(data);
+          return;
+        }
       }
     } catch (e) {
       console.error("Erro ao carregar lojistas da API, usando redundância local", e);
     } finally {
+      setTenants((current) => current.length > 0 ? current : LOCAL_FALLBACK_TENANTS);
       setLoading(false);
     }
   };
@@ -44,28 +57,54 @@ export default function App() {
   useEffect(() => {
     fetchTenants();
 
-    // Direct url-hash slug routing support for testing
-    const handleHashRouting = () => {
-      const hash = window.location.hash;
-      if (hash === "#/portfolio") {
+    // Direct URL routing support for production plus legacy hash URLs.
+    const handleClientRouting = () => {
+      const hashPath = window.location.hash.startsWith("#/")
+        ? window.location.hash.replace("#/", "")
+        : "";
+      const pathSlug = window.location.pathname.replace(/^\/+|\/+$/g, "");
+      const route = hashPath || pathSlug;
+
+      if (route === "portfolio") {
         setCurrentView('portfolio');
-      } else if (hash.startsWith("#/")) {
-        const slug = hash.replace("#/", "");
-        if (slug && slug !== 'portfolio') {
-          setActiveSlug(slug);
-          setCurrentView('tenant-public');
-        }
+        setActiveSlug(null);
+      } else if (route === "busca") {
+        setCurrentView('busca');
+        setActiveSlug(null);
+      } else if (!RESERVED_ROUTES.has(route)) {
+        setActiveSlug(route);
+        setCurrentView('tenant-public');
+      } else {
+        setCurrentView('landing');
+        setActiveSlug(null);
       }
     };
 
-    handleHashRouting();
-    window.addEventListener("hashchange", handleHashRouting);
-    return () => window.removeEventListener("hashchange", handleHashRouting);
+    handleClientRouting();
+    window.addEventListener("hashchange", handleClientRouting);
+    window.addEventListener("popstate", handleClientRouting);
+    return () => {
+      window.removeEventListener("hashchange", handleClientRouting);
+      window.removeEventListener("popstate", handleClientRouting);
+    };
   }, []);
 
   // Update current tenant state changes
   const handleRefreshActiveTenant = () => {
     fetchTenants();
+  };
+
+  const handleTenantUpdated = (updatedTenant: Tenant) => {
+    setTenants((current) => {
+      const exists = current.some((tenant) => tenant.id === updatedTenant.id);
+      return exists
+        ? current.map((tenant) => tenant.id === updatedTenant.id ? updatedTenant : tenant)
+        : [...current, updatedTenant];
+    });
+  };
+
+  const handleTenantDeleted = (tenantId: string) => {
+    setTenants((current) => current.filter((tenant) => tenant.id !== tenantId));
   };
 
   // Find currently active tenant data
@@ -96,12 +135,12 @@ export default function App() {
               // Super admin → painel completo
               setCurrentView('super-admin');
               setActiveSlug(null);
-              window.location.hash = '';
+              updateBrowserPath('/');
             } else if (role === 'tenantadmin' && tenantSlug) {
               // Tenant admin → somente o painel do seu site
               setActiveSlug(tenantSlug);
               setCurrentView('tenant-admin');
-              window.location.hash = `/${tenantSlug}`;
+              updateBrowserPath(`/${tenantSlug}`);
             }
           }}
         />
@@ -120,7 +159,7 @@ export default function App() {
               onClick={() => {
                 setCurrentView('landing');
                 setActiveSlug(null);
-                window.location.hash = "";
+                updateBrowserPath("/");
               }}
               className={`hover:text-amber-500 ${currentView === 'landing' ? 'text-amber-500 font-bold' : ''}`}
             >
@@ -131,7 +170,7 @@ export default function App() {
               onClick={() => {
                 setActiveSlug('barbeariakeu');
                 setCurrentView('tenant-public');
-                window.location.hash = "/barbeariakeu";
+                updateBrowserPath("/barbeariakeu");
               }}
               className={`hover:text-amber-500 ${activeSlug === 'barbeariakeu' && currentView === 'tenant-public' ? 'text-amber-500 font-bold' : ''}`}
             >
@@ -141,7 +180,7 @@ export default function App() {
               onClick={() => {
                 setActiveSlug('salaodajulie');
                 setCurrentView('tenant-public');
-                window.location.hash = "/salaodajulie";
+                updateBrowserPath("/salaodajulie");
               }}
               className={`hover:text-amber-500 ${activeSlug === 'salaodajulie' && currentView === 'tenant-public' ? 'text-amber-500 font-bold' : ''}`}
             >
@@ -151,7 +190,7 @@ export default function App() {
               onClick={() => {
                 setActiveSlug('oficinadocarlos');
                 setCurrentView('tenant-public');
-                window.location.hash = "/oficinadocarlos";
+                updateBrowserPath("/oficinadocarlos");
               }}
               className={`hover:text-amber-500 ${activeSlug === 'oficinadocarlos' && currentView === 'tenant-public' ? 'text-amber-500 font-bold' : ''}`}
             >
@@ -161,7 +200,7 @@ export default function App() {
             <button 
               onClick={() => {
                 setCurrentView('super-admin');
-                window.location.hash = "";
+                updateBrowserPath("/");
               }}
               className={`hover:text-amber-500 ${currentView === 'super-admin' ? 'text-amber-500 font-bold' : ''}`}
             >
@@ -177,13 +216,13 @@ export default function App() {
           onSelectTenant={(slug) => {
             setActiveSlug(slug);
             setCurrentView('tenant-public');
-            window.location.hash = `/${slug}`;
+            updateBrowserPath(`/${slug}`);
           }}
           onGoToSearch={() => setCurrentView('busca')}
           onGoToSuperAdmin={() => setShowAuthModal(true)}
           onGoToPortfolio={() => {
             setCurrentView('portfolio');
-            window.location.hash = '/portfolio';
+            updateBrowserPath('/portfolio');
           }}
         />
       )}
@@ -194,7 +233,7 @@ export default function App() {
           onSelectTenant={(slug) => {
             setActiveSlug(slug);
             setCurrentView('tenant-public');
-            window.location.hash = `/${slug}`;
+            updateBrowserPath(`/${slug}`);
           }}
           onGoBack={() => setCurrentView('landing')}
         />
@@ -206,11 +245,11 @@ export default function App() {
           onSelectTenant={(slug) => {
             setActiveSlug(slug);
             setCurrentView('tenant-public');
-            window.location.hash = `/${slug}`;
+            updateBrowserPath(`/${slug}`);
           }}
           onGoBack={() => {
             setCurrentView('landing');
-            window.location.hash = '';
+            updateBrowserPath('/');
           }}
         />
       )}
@@ -223,7 +262,7 @@ export default function App() {
           onBackToLanding={() => {
             setCurrentView('landing');
             setActiveSlug(null);
-            window.location.hash = "";
+            updateBrowserPath("/");
           }}
         />
       )}
@@ -232,6 +271,7 @@ export default function App() {
         <TenantAdminDashboard 
           tenant={activeTenant}
           onRefreshTenant={handleRefreshActiveTenant}
+          onTenantUpdated={handleTenantUpdated}
           onBackToPublicSite={() => setCurrentView('tenant-public')}
           userRole={role}
         />
@@ -246,6 +286,8 @@ export default function App() {
             setActiveSlug(slug);
             setCurrentView('tenant-admin');
           }}
+          onTenantDeleted={handleTenantDeleted}
+          onTenantUpdated={handleTenantUpdated}
         />
       )}
 

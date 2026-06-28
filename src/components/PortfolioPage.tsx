@@ -79,13 +79,13 @@ const THEME_COLORS: Record<string, { bg: string; border: string; text: string; g
   },
 };
 
-function SitePreviewCard({
-  tenant,
-  onSelectTenant,
-}: {
+const SitePreviewCard: React.FC<{
   tenant: Tenant;
   onSelectTenant: (slug: string) => void;
-}) {
+}> = ({
+  tenant,
+  onSelectTenant,
+}) => {
   const theme = THEME_COLORS[tenant.themeColor] || THEME_COLORS["zinc"];
   const planInfo = PLAN_LABELS[tenant.plan] || PLAN_LABELS["basic"];
   const avgRating =
@@ -255,7 +255,7 @@ function SitePreviewCard({
       </div>
     </div>
   );
-}
+};
 
 export default function PortfolioPage({
   tenants,

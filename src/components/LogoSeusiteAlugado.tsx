@@ -1,5 +1,7 @@
 type LogoProps = {
   size?: "sm" | "md" | "lg";
+  theme?: "light" | "dark";
+  showSubtitle?: boolean;
   className?: string;
 };
 
@@ -11,6 +13,8 @@ const sizeConfig = {
 
 export default function LogoSeusiteAlugado({
   size = "md",
+  theme,
+  showSubtitle,
   className = "",
 }: LogoProps) {
   const { height } = sizeConfig[size];

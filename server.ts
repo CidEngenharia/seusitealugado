@@ -296,7 +296,7 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
   ]);
 
   // 3. Reinserir com dados atualizados
-  const insertOps: Promise<any>[] = [];
+  const insertOps: PromiseLike<any>[] = [];
 
   if (updatedTenant.services?.length) {
     insertOps.push(supabase.from("services").insert(

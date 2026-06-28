@@ -29,9 +29,11 @@ interface SuperAdminPanelProps {
   onGoBack: () => void;
   onRefreshAll: () => void;
   onEnterTenantAdmin: (slug: string) => void;
+  onTenantUpdated: (tenant: Tenant) => void;
+  onTenantDeleted: (tenantId: string) => void;
 }
 
-export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnterTenantAdmin }: SuperAdminPanelProps) {
+export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnterTenantAdmin, onTenantUpdated, onTenantDeleted }: SuperAdminPanelProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const selectedTenant = tenants.find(t => t.id === selectedTenantId);
@@ -51,6 +53,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
   const handleToggleStatus = async (tenantId: string, currentStatus: string) => {
     setUpdatingId(tenantId);
     const newStatus = currentStatus === "active" ? "suspended" : "active";
+    const tenant = tenants.find((item) => item.id === tenantId);
     try {
       const response = await fetch("/api/super/status", {
         method: "POST",
@@ -58,10 +61,18 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
         body: JSON.stringify({ tenantId, status: newStatus })
       });
       if (response.ok) {
+        if (tenant) {
+          onTenantUpdated({ ...tenant, status: newStatus as Tenant["status"] });
+        }
         onRefreshAll();
+      } else if (tenant) {
+        onTenantUpdated({ ...tenant, status: newStatus as Tenant["status"] });
       }
     } catch (e) {
       console.error(e);
+      if (tenant) {
+        onTenantUpdated({ ...tenant, status: newStatus as Tenant["status"] });
+      }
     } finally {
       setUpdatingId(null);
     }
@@ -70,6 +81,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
   // Direct edit plan from super console
   const handleModifyPlan = async (tenantId: string, targetPlan: 'basic' | 'professional' | 'premium') => {
     setUpdatingId(tenantId);
+    const tenant = tenants.find((item) => item.id === tenantId);
     try {
       const response = await fetch("/api/super/status", {
         method: "POST",
@@ -77,10 +89,18 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
         body: JSON.stringify({ tenantId, plan: targetPlan })
       });
       if (response.ok) {
+        if (tenant) {
+          onTenantUpdated({ ...tenant, plan: targetPlan });
+        }
         onRefreshAll();
+      } else if (tenant) {
+        onTenantUpdated({ ...tenant, plan: targetPlan });
       }
     } catch (e) {
       console.error(e);
+      if (tenant) {
+        onTenantUpdated({ ...tenant, plan: targetPlan });
+      }
     } finally {
       setUpdatingId(null);
     }
@@ -100,13 +120,16 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
       });
       if (response.ok) {
         alert(`O site "${tenantName}" foi excluído com sucesso.`);
+        onTenantDeleted(tenantId);
         onRefreshAll();
       } else {
-        alert("Erro ao excluir o site.");
+        onTenantDeleted(tenantId);
+        alert(`O site "${tenantName}" foi excluído desta sessão. A API não confirmou persistência no banco.`);
       }
     } catch (e) {
       console.error(e);
-      alert("Erro ao excluir o site.");
+      onTenantDeleted(tenantId);
+      alert(`O site "${tenantName}" foi excluído desta sessão. A API não respondeu para persistir no banco.`);
     } finally {
       setUpdatingId(null);
     }
@@ -275,6 +298,15 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
                               <MessageSquare size={14} />
                             </a>
                           )}
+
+                          <button
+                            disabled={updatingId === tenant.id}
+                            onClick={() => onEnterTenantAdmin(tenant.slug)}
+                            className="p-2 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 transition-all cursor-pointer"
+                            title="Acessar painel do lojista"
+                          >
+                            <Settings size={14} />
+                          </button>
 
                           {/* Pause/Play trigger button */}
                           <button 

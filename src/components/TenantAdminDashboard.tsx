@@ -51,6 +51,8 @@ import {
   ClientItem,
   FinanceEntry,
   ProductItem,
+  PayableItem,
+  ReceivableItem,
   ReviewItem,
   CampaignItem,
 } from "../types";
@@ -102,6 +104,7 @@ const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.
 interface TenantAdminDashboardProps {
   tenant: Tenant;
   onRefreshTenant: () => void;
+  onTenantUpdated: (tenant: Tenant) => void;
   onBackToPublicSite: () => void;
   userRole?: 'superadmin' | 'tenantadmin' | null;
 }
@@ -109,6 +112,7 @@ interface TenantAdminDashboardProps {
 export default function TenantAdminDashboard({
   tenant,
   onRefreshTenant,
+  onTenantUpdated,
   onBackToPublicSite,
   userRole,
 }: TenantAdminDashboardProps) {
@@ -416,10 +420,15 @@ export default function TenantAdminDashboard({
         body: JSON.stringify(updated),
       });
       if (response.ok) {
+        onTenantUpdated(updated);
         onRefreshTenant();
+      } else {
+        onTenantUpdated(updated);
+        console.warn("API não confirmou a atualização do tenant. Alteração aplicada apenas na sessão atual.");
       }
     } catch (e) {
       console.error(e);
+      onTenantUpdated(updated);
     }
   };
 
