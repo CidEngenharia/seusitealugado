@@ -209,8 +209,8 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
   // === Tela de Sucesso ===
   if (success) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-        <div className="bg-zinc-950 rounded-3xl p-8 w-full max-w-md shadow-2xl border border-emerald-500/30 text-center space-y-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
+        <div className="bg-zinc-950 rounded-2xl sm:rounded-3xl p-5 sm:p-8 w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl border border-emerald-500/30 text-center space-y-6">
           <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
             <Rocket size={36} className="text-emerald-400" />
           </div>
@@ -254,11 +254,11 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-zinc-950 rounded-3xl w-full max-w-lg shadow-2xl border border-zinc-800 my-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-zinc-950 rounded-2xl sm:rounded-3xl w-full max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col shadow-2xl border border-zinc-800">
 
         {/* Header */}
-        <div className="p-6 border-b border-zinc-800 flex items-start justify-between">
+        <div className="p-4 sm:p-6 border-b border-zinc-800 flex items-start justify-between gap-4 shrink-0">
           <div>
             <div className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border mb-2 ${PLAN_COLORS[plan]}`}>
               <Sparkles size={10} />
@@ -267,13 +267,18 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
             <h2 className="text-xl font-black text-white">Configure seu Site</h2>
             <p className="text-xs text-zinc-500 mt-1">Preencha os dados para criar sua presença digital</p>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200 p-1 transition-colors shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar janela"
+            className="text-zinc-500 hover:text-zinc-200 p-2 -m-2 transition-colors shrink-0"
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* Progress Indicator */}
-        <div className="px-6 pt-4">
+        <div className="px-4 sm:px-6 pt-4 shrink-0">
           <div className="flex items-center gap-1">
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-1 flex-1">
@@ -296,7 +301,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
 
           {/* === STEP 1: Dados Básicos === */}
           {step === 1 && (
@@ -336,7 +341,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
                 <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
                   Segmento / Categoria
                 </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 sm:max-h-48 overflow-y-auto pr-1">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
@@ -492,19 +497,29 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
             </div>
           )}
 
-          {/* Botões de navegação */}
-          <div className="flex items-center justify-between pt-2 gap-3">
-            {step > 1 ? (
+        </div>
+
+        {/* Botões de navegação */}
+        <div className="shrink-0 border-t border-zinc-800 bg-zinc-950 p-4 sm:px-6">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setStep(step - 1)}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-zinc-900 border border-zinc-700 text-zinc-300 font-bold rounded-xl text-xs hover:bg-zinc-800 transition-all"
+                onClick={onClose}
+                className="px-4 py-2.5 bg-zinc-950 border border-zinc-700 text-zinc-400 font-bold rounded-xl text-xs hover:bg-zinc-900 hover:text-zinc-200 transition-all"
               >
-                <ArrowLeft size={13} /> Voltar
+                Cancelar
               </button>
-            ) : (
-              <div />
-            )}
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(step - 1)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-zinc-900 border border-zinc-700 text-zinc-300 font-bold rounded-xl text-xs hover:bg-zinc-800 transition-all"
+                >
+                  <ArrowLeft size={13} /> Voltar
+                </button>
+              )}
+            </div>
 
             {step < 3 ? (
               <button
@@ -514,7 +529,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
                   (step === 2 && !isStep2Valid)
                 }
                 onClick={() => setStep(step + 1)}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Avançar <ArrowRight size={13} />
               </button>
@@ -523,7 +538,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
                 type="button"
                 disabled={!isStep3Valid || creating}
                 onClick={handleCreate}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {creating ? (
                   <><Loader2 size={13} className="animate-spin" /> Criando...</>
@@ -533,7 +548,6 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
               </button>
             )}
           </div>
-
         </div>
       </div>
     </div>

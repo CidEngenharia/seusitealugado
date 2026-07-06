@@ -49,6 +49,25 @@ interface SaaSLandingPageProps {
   onGoToPortfolio: () => void;
 }
 
+const STRIPE_PAYMENT_LINKS = {
+  basic: "https://buy.stripe.com/bJefZa2urc3ye9YcKCf3a0l",
+  professional: "https://buy.stripe.com/7sYdR2b0Xc3y1ncbGyf3a0m",
+  premium: "https://buy.stripe.com/dRm9AM8SP7Ni6HwbGyf3a0n",
+} as const;
+
+function hasConfirmedStripePayment(params: URLSearchParams) {
+  return (
+    params.get("payment") === "success" ||
+    params.get("payment_status") === "paid" ||
+    params.get("redirect_status") === "succeeded" ||
+    params.get("status") === "success" ||
+    params.get("success") === "true" ||
+    params.get("paid") === "true" ||
+    params.has("checkout_session_id") ||
+    params.has("session_id")
+  );
+}
+
 // Translations Dictionary for complete PT-BR and EN-US fidelity
 const translations = {
   pt: {
@@ -248,7 +267,13 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
     const params = new URLSearchParams(window.location.search);
     const planParam = params.get("plan");
     const setupParam = params.get("setup");
-    if (setupParam === "true" && (planParam === "basic" || planParam === "professional" || planParam === "premium")) {
+    const paymentConfirmed = hasConfirmedStripePayment(params);
+
+    if (
+      setupParam === "true" &&
+      paymentConfirmed &&
+      (planParam === "basic" || planParam === "professional" || planParam === "premium")
+    ) {
       setSetupPlan(planParam);
       setShowSetupModal(true);
       // Remove os parâmetros da URL sem recarregar a página
@@ -301,6 +326,40 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
 
   // Portfolio items data structures (used for automatic carousel)
   const carouselItems = [
+    {
+      key: 'sallesfit',
+      slug: 'sallesfit',
+      title: "SallesFit",
+      description: lang === 'pt'
+        ? "Moda fitness premium com layout Rose de alta conversão. Integrado com catálogo interativo de roupas, avaliações reais e agendamentos instantâneos de consultoria."
+        : "Premium fitness apparel store featuring a high-converting Rose Layout. Integrated with beautiful interactive catalogs, live reviews, and health session bookings.",
+      tag: lang === 'pt' ? "Tema Rose Fit & Tipografia Esportiva" : "Rose Fit Theme & Athletic Typography",
+      services: [
+        { name: lang === 'pt' ? "Consultoria Fitness VIP" : "VIP Fitness Consulting", price: 199.00, duration: 60 },
+        { name: lang === 'pt' ? "Treino Funcional Alta Queima" : "High Burn HIIT Session", price: 45.00, duration: 45 },
+      ],
+      reviews: [
+        { author: "Fernanda Lima", rating: 5, comment: lang === 'pt' ? "O top cropped veste perfeitamente bem! Tecido muito leve." : "The crop top fits incredibly well! Excellent light dry-fit fabric." }
+      ],
+      banner: "bg-gradient-to-br from-rose-500/20 to-zinc-900 border border-rose-500/20 text-white",
+      coverGradient: "from-rose-500/30 via-zinc-900/90 to-zinc-950",
+      avatarEmoji: "⚡",
+      avatarImg: "/src/assets/images/sallesfit_logo_1782162401662.jpg",
+      ratingText: lang === 'pt' ? "★ 5.0 • 1 avaliação • ROSE" : "★ 5.0 • 1 review • ROSE",
+      aboutTitle: lang === 'pt' ? "Quem Somos" : "About Us",
+      aboutDesc: lang === 'pt' 
+        ? "Moda fitness premium, vestuário de alta performance e consultoria esportiva inteligente. Tecidos dry-fit premium e modelagem ergonômica feitos para te mover."
+        : "Premium fitness apparel, high-performance wear, and smart sports coaching. Premium dry-fit fabrics and ergonomic modeling made to keep you moving.",
+      address: "Av. Paulista, 1000 - Bela Vista, São Paulo - SP",
+      hours: "Seg-Sáb: 07h às 22h",
+      phone: "(11) 99999-8888",
+      accentBorder: "border-rose-500",
+      accentBg: "bg-rose-500",
+      accentText: "text-rose-400",
+      mapColor: "rose",
+      street1: "Avenida Paulista",
+      street2: "Bela Vista"
+    },
     {
       key: 'barber',
       slug: 'barbeariakeu',
@@ -409,40 +468,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       street1: "Rua Barra Funda",
       street2: "Elevado"
     },
-    {
-      key: 'sallesfit',
-      slug: 'sallesfit',
-      title: "SallesFit",
-      description: lang === 'pt'
-        ? "Moda fitness premium com layout Rose de alta conversão. Integrado com catálogo interativo de roupas, avaliações reais e agendamentos instantâneos de consultoria."
-        : "Premium fitness apparel store featuring a high-converting Rose Layout. Integrated with beautiful interactive catalogs, live reviews, and health session bookings.",
-      tag: lang === 'pt' ? "Tema Rose Fit & Tipografia Esportiva" : "Rose Fit Theme & Athletic Typography",
-      services: [
-        { name: lang === 'pt' ? "Consultoria Fitness VIP" : "VIP Fitness Consulting", price: 199.00, duration: 60 },
-        { name: lang === 'pt' ? "Treino Funcional Alta Queima" : "High Burn HIIT Session", price: 45.00, duration: 45 },
-      ],
-      reviews: [
-        { author: "Fernanda Lima", rating: 5, comment: lang === 'pt' ? "O top cropped veste perfeitamente bem! Tecido muito leve." : "The crop top fits incredibly well! Excellent light dry-fit fabric." }
-      ],
-      banner: "bg-gradient-to-br from-rose-500/20 to-zinc-900 border border-rose-500/20 text-white",
-      coverGradient: "from-rose-500/30 via-zinc-900/90 to-zinc-950",
-      avatarEmoji: "⚡",
-      avatarImg: "/src/assets/images/sallesfit_logo_1782162401662.jpg",
-      ratingText: lang === 'pt' ? "★ 5.0 • 1 avaliação • ROSE" : "★ 5.0 • 1 review • ROSE",
-      aboutTitle: lang === 'pt' ? "Quem Somos" : "About Us",
-      aboutDesc: lang === 'pt' 
-        ? "Moda fitness premium, vestuário de alta performance e consultoria esportiva inteligente. Tecidos dry-fit premium e modelagem ergonômica feitos para te mover."
-        : "Premium fitness apparel, high-performance wear, and smart sports coaching. Premium dry-fit fabrics and ergonomic modeling made to keep you moving.",
-      address: "Av. Paulista, 1000 - Bela Vista, São Paulo - SP",
-      hours: "Seg-Sáb: 07h às 22h",
-      phone: "(11) 99999-8888",
-      accentBorder: "border-rose-500",
-      accentBg: "bg-rose-500",
-      accentText: "text-rose-400",
-      mapColor: "rose",
-      street1: "Avenida Paulista",
-      street2: "Bela Vista"
-    }
+
   ];
 
   const currentPortfolio = carouselItems[activeIdx];
@@ -1499,10 +1525,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
 
             <button
               onClick={() => {
-                setSetupPlan("basic");
-                setShowSetupModal(true);
-                // Abre o Stripe em nova aba
-                window.open("https://buy.stripe.com/bJefZa2urc3ye9YcKCf3a0l", "_blank");
+                window.location.href = STRIPE_PAYMENT_LINKS.basic;
               }}
               className={`w-full mt-6 py-3 text-center font-extrabold rounded-xl text-xs cursor-pointer transition-all ${
                 theme === 'dark' 
@@ -1557,9 +1580,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
 
             <button
               onClick={() => {
-                setSetupPlan("professional");
-                setShowSetupModal(true);
-                window.open("https://buy.stripe.com/7sYdR2b0Xc3y1ncbGyf3a0m", "_blank");
+                window.location.href = STRIPE_PAYMENT_LINKS.professional;
               }}
               className={`w-full mt-6 py-3 text-center font-extrabold rounded-xl text-xs cursor-pointer transition-all ${
                 theme === 'dark' 
@@ -1613,9 +1634,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
 
             <button
               onClick={() => {
-                setSetupPlan("premium");
-                setShowSetupModal(true);
-                window.open("https://buy.stripe.com/dRm9AM8SP7Ni6HwbGyf3a0n", "_blank");
+                window.location.href = STRIPE_PAYMENT_LINKS.premium;
               }}
               className={`w-full mt-6 py-3 text-center font-extrabold rounded-xl text-xs cursor-pointer transition-all ${
                 theme === 'dark' 
