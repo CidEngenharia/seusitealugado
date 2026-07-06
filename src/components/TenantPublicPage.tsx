@@ -851,20 +851,42 @@ END:VCARD`;
                 const photos = customPhotos.length > 0 ? customPhotos : placeholderPhotos;
                 return (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                    {photos.slice(0, 6).map((src: string, i: number) => (
-                      <div key={i} className="aspect-square bg-zinc-800 rounded-xl overflow-hidden relative group">
-                        <img
-                          src={src}
-                          alt={`Instagram post ${i + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Instagram className="text-white w-6 h-6" />
-                        </div>
-                      </div>
-                    ))}
+                    {photos.slice(0, 6).map((src: string, i: number) => {
+                      const isCustom = customPhotos.length > 0;
+                      const linkUrl = isCustom ? src : (tenant.socials?.instagram ? (tenant.socials.instagram.startsWith('http') ? tenant.socials.instagram : `https://instagram.com/${tenant.socials.instagram.replace('@', '')}`) : 'https://instagram.com');
+                      return (
+                        <a
+                          key={i}
+                          href={linkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="aspect-square bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] rounded-xl overflow-hidden relative group shadow-lg cursor-pointer block"
+                        >
+                          <img
+                            src={src}
+                            alt={`Instagram post ${i + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100 absolute inset-0 z-10"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              // Se der erro de CORS/bloqueio, oculta a imagem quebrada
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          {/* Fallback visual com logo quando a foto falha por bloqueio CORS do Instagram */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-zinc-900/90 z-0">
+                            <Instagram className="text-zinc-500 w-8 h-8 mb-1 animate-pulse" />
+                            <span className="text-[9px] text-zinc-600 font-mono">Ver no Instagram</span>
+                          </div>
+                          
+                          {/* Overlay de hover com ícone oficial do Instagram */}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+                            <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center">
+                              <Instagram className="text-white w-5 h-5" />
+                            </div>
+                          </div>
+                        </a>
+                      );
+                    })}
                     {customPhotos.length === 0 && (
                       <div className="col-span-2 md:col-span-3 text-center text-xs text-zinc-500 pt-1 pb-2">
                         Imagens ilustrativas — cadastre suas fotos reais no painel admin.
