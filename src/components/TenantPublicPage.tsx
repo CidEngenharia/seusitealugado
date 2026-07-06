@@ -890,9 +890,41 @@ END:VCARD`;
       </main>
 
       {/* FOOTER METADATA */}
-      <footer className="border-t border-zinc-850/60 mt-16 py-6 text-center text-[10px] text-zinc-500">
-        <p>© 2026 {tenant.name}. Alugado no sistema **SeusiteAlugado**.</p>
+      <footer className="border-t border-zinc-800/40 mt-16 py-6 text-center text-[10px] text-zinc-500">
+        <p>© 2026 {tenant.name}. Alugado no sistema SeusiteAlugado.</p>
         <p className="mt-1">Dispositivo móvel amigável • PWA Instalável • Assinatura Mensal {tenant.plan.toUpperCase()}</p>
+
+        {/* CidEngenharia Badge */}
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <style>{`
+            @keyframes cid-pulse {
+              0%, 100% { filter: drop-shadow(0 0 4px #c026d3) drop-shadow(0 0 8px #06b6d4); opacity: 0.85; }
+              50% { filter: drop-shadow(0 0 8px #e879f9) drop-shadow(0 0 16px #22d3ee); opacity: 1; }
+            }
+            @keyframes cid-spin-slow {
+              from { transform: rotateY(0deg); }
+              to { transform: rotateY(360deg); }
+            }
+            .cid-logo {
+              animation: cid-pulse 2.4s ease-in-out infinite, cid-spin-slow 6s linear infinite;
+              transform-style: preserve-3d;
+            }
+          `}</style>
+          <img
+            src="/cidengenharia_logo.png"
+            alt="CidEngenharia"
+            className="cid-logo w-6 h-6 object-contain"
+          />
+          <span className="text-[10px] tracking-widest" style={{
+            background: "linear-gradient(90deg, #c026d3, #06b6d4)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            fontWeight: 500,
+            letterSpacing: "0.12em"
+          }}>
+            CidEngenharia
+          </span>
+        </div>
       </footer>
 
       {/* MODAL: BOOKING WIZARD */}
