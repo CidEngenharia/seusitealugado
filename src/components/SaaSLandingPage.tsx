@@ -1667,6 +1667,37 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       }`}>
         <p>{t.footerText1}</p>
         <p className="opacity-80">{t.footerText2}</p>
+
+        {/* CidEngenharia Badge */}
+        <div className="pt-2 flex items-center justify-center gap-2">
+          <style>{`
+            @keyframes cid-pulse {
+              0%, 100% { filter: drop-shadow(0 0 4px #c026d3) drop-shadow(0 0 8px #06b6d4); opacity: 0.85; }
+              50% { filter: drop-shadow(0 0 8px #e879f9) drop-shadow(0 0 16px #22d3ee); opacity: 1; }
+            }
+            @keyframes cid-spin-slow {
+              from { transform: rotateY(0deg); }
+              to { transform: rotateY(360deg); }
+            }
+            .cid-logo {
+              animation: cid-pulse 2.4s ease-in-out infinite, cid-spin-slow 6s linear infinite;
+              transform-style: preserve-3d;
+            }
+          `}</style>
+          <img
+            src="/cidengenharia_logo.png"
+            alt="CidEngenharia"
+            className="cid-logo w-6 h-6 object-contain"
+          />
+          <span className="text-[10px] tracking-widest" style={{
+            background: "linear-gradient(90deg, #c026d3, #06b6d4)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "0.12em"
+          }}>
+            CidEngenharia
+          </span>
+        </div>
       </footer>
     </div>
 
