@@ -1672,11 +1672,12 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
         <div className="pt-2 flex items-center justify-center gap-2">
           <style>{`
             @keyframes cid-pulse {
-              0%, 100% { filter: drop-shadow(0 0 2px #c026d3) drop-shadow(0 0 6px #06b6d4); opacity: 0.8; }
-              50% { filter: drop-shadow(0 0 6px #e879f9) drop-shadow(0 0 12px #22d3ee); opacity: 1; }
+              0%, 100% { transform: scale(1); opacity: 0.9; }
+              50% { transform: scale(1.12); opacity: 1; }
             }
             .cid-logo {
               animation: cid-pulse 2s ease-in-out infinite;
+              transition: transform 0.2s ease;
             }
           `}</style>
           <img
