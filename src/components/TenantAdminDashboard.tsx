@@ -3285,15 +3285,6 @@ export default function TenantAdminDashboard({
                     Configuração do Site
                   </h2>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSaveSiteSettings}
-                  disabled={isSavingSiteSettings}
-                  className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold text-xs px-5 py-2.5 rounded-lg cursor-pointer disabled:cursor-wait transition-colors shadow-sm"
-                >
-                  <Save size={14} />
-                  {isSavingSiteSettings ? "Salvando..." : "Salvar Alterações"}
-                </button>
               </div>
 
               <div className="bg-white border border-slate-200 p-5 rounded-xl space-y-4 shadow-sm">
@@ -3909,20 +3900,28 @@ export default function TenantAdminDashboard({
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={handleSaveSiteSettings}
-                        disabled={isSavingSiteSettings}
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs px-5 py-2.5 rounded-lg cursor-pointer transition-all shadow"
-                      >
-                        <Save size={13} />
-                        {isSavingSiteSettings ? "Salvando..." : "Salvar Fotos da Galeria"}
-                      </button>
+                    <div className="pt-2 border-t border-slate-100">
                       <p className="text-[10px] text-slate-400">As fotos aparecem automaticamente na aba Instagram do seu site público.</p>
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* GLOBAL SAVE BUTTON - BOTTOM OF PAGE */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl flex items-center justify-between shadow-sm">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-xs text-slate-800">Salvar todas as configurações</h4>
+                  <p className="text-[10px] text-slate-500">Isso aplicará as cores, fontes, logotipo, informações gerais e galeria do Instagram de uma só vez.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveSiteSettings}
+                  disabled={isSavingSiteSettings}
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold text-xs px-6 py-3 rounded-xl cursor-pointer disabled:cursor-wait transition-all shadow-md active:scale-98"
+                >
+                  <Save size={14} />
+                  {isSavingSiteSettings ? "Salvando Alterações..." : "Salvar Configurações"}
+                </button>
               </div>
 
             </div>
