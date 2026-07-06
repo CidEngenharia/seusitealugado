@@ -18,6 +18,9 @@ import fallbackTenants from "../database.json";
 const LOCAL_FALLBACK_TENANTS = fallbackTenants as Tenant[];
 const RESERVED_ROUTES = new Set(["", "portfolio", "busca", "admin"]);
 
+// Chave para persistir sessão (sessionStorage: limpa ao fechar o browser)
+const SESSION_KEY = "siteAlugado_session";
+
 export default function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +29,6 @@ export default function App() {
   const [role, setRole] = useState<'superadmin' | 'tenantadmin' | null>(null);
   
   // Custom SPA Client-Side States
-  // 'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'
   const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'>('landing');
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
@@ -35,29 +37,50 @@ export default function App() {
     window.history.pushState(null, "", nextPath === "/" ? "/" : nextPath);
   };
 
-  // Fetch tenants on mount
+  // Fetch tenants — sem fallback automático que sobrescreve dados reais
   const fetchTenants = async () => {
     try {
       const response = await fetch("/api/tenants");
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setTenants(data);
-          return;
-        }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setTenants(data);
+        return true; // sucesso
       }
-    } catch (e) {
-      console.error("Erro ao carregar lojistas da API, usando redundância local", e);
-    } finally {
+      // API retornou array vazio → usar fallback apenas se não tiver dados
       setTenants((current) => current.length > 0 ? current : LOCAL_FALLBACK_TENANTS);
+      return false;
+    } catch (e) {
+      console.error("API indisponível, usando dados locais de demonstração:", e);
+      // Só aplica fallback se não houver dados já carregados
+      setTenants((current) => current.length > 0 ? current : LOCAL_FALLBACK_TENANTS);
+      return false;
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Restaurar sessão salva (persiste dentro da mesma aba/janela)
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (saved) {
+        const session = JSON.parse(saved);
+        if (session.role) {
+          setRole(session.role);
+          if (session.role === 'superadmin') {
+            setCurrentView('super-admin');
+          } else if (session.role === 'tenantadmin' && session.slug) {
+            setActiveSlug(session.slug);
+            setCurrentView('tenant-admin');
+          }
+        }
+      }
+    } catch {}
+
     fetchTenants();
 
-    // Direct URL routing support for production plus legacy hash URLs.
+    // Direct URL routing support para produção e hash URLs
     const handleClientRouting = () => {
       const hashPath = window.location.hash.startsWith("#/")
         ? window.location.hash.replace("#/", "")
@@ -73,7 +96,10 @@ export default function App() {
         setActiveSlug(null);
       } else if (!RESERVED_ROUTES.has(route)) {
         setActiveSlug(route);
-        setCurrentView('tenant-public');
+        // Só vai para public se não estiver no painel admin da mesma slug
+        setCurrentView((current) => 
+          current === 'tenant-admin' ? current : 'tenant-public'
+        );
       } else {
         setCurrentView('landing');
         setActiveSlug(null);
@@ -89,7 +115,34 @@ export default function App() {
     };
   }, []);
 
-  // Update current tenant state changes
+  // Salvar sessão ao fazer login
+  const handleLogin = (newRole: 'superadmin' | 'tenantadmin', tenantSlug: string | null) => {
+    setRole(newRole);
+    setShowAuthModal(false);
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role: newRole, slug: tenantSlug }));
+    } catch {}
+    if (newRole === 'superadmin') {
+      setCurrentView('super-admin');
+      setActiveSlug(null);
+      updateBrowserPath('/');
+    } else if (newRole === 'tenantadmin' && tenantSlug) {
+      setActiveSlug(tenantSlug);
+      setCurrentView('tenant-admin');
+      updateBrowserPath(`/${tenantSlug}`);
+    }
+  };
+
+  // Logout limpa a sessão
+  const handleLogout = () => {
+    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+    setRole(null);
+    setCurrentView('landing');
+    setActiveSlug(null);
+    updateBrowserPath('/');
+  };
+
+  // Refresh apenas quando necessário (evita race condition com o Supabase)
   const handleRefreshActiveTenant = () => {
     fetchTenants();
   };
@@ -128,21 +181,7 @@ export default function App() {
         <AuthModal
           tenants={tenants}
           onClose={() => setShowAuthModal(false)}
-          onLogin={(role, tenantSlug) => {
-            setRole(role);
-            setShowAuthModal(false);
-            if (role === 'superadmin') {
-              // Super admin → painel completo
-              setCurrentView('super-admin');
-              setActiveSlug(null);
-              updateBrowserPath('/');
-            } else if (role === 'tenantadmin' && tenantSlug) {
-              // Tenant admin → somente o painel do seu site
-              setActiveSlug(tenantSlug);
-              setCurrentView('tenant-admin');
-              updateBrowserPath(`/${tenantSlug}`);
-            }
-          }}
+          onLogin={handleLogin}
         />
       )}
 
@@ -205,6 +244,13 @@ export default function App() {
               className={`hover:text-amber-500 ${currentView === 'super-admin' ? 'text-amber-500 font-bold' : ''}`}
             >
               🛡️ Admin
+            </button>
+            <span>|</span>
+            <button 
+              onClick={handleLogout}
+              className="hover:text-red-400 text-zinc-500"
+            >
+              🚪 Sair
             </button>
           </div>
         </div>

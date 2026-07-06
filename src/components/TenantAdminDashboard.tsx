@@ -419,7 +419,7 @@ export default function TenantAdminDashboard({
   const [socialPlatform, setSocialPlatform] = useState<string>("instagram");
   const [socialLink, setSocialLink] = useState<string>("instagram.com/");
 
-  // Save Tenant helper
+  // Save Tenant helper — atualiza estado local imediatamente sem re-fetch
   const saveTenantChanges = async (updated: Tenant) => {
     try {
       const response = await fetch("/api/tenants", {
@@ -428,15 +428,16 @@ export default function TenantAdminDashboard({
         body: JSON.stringify(updated),
       });
       if (response.ok) {
-        onTenantUpdated(updated);
-        onRefreshTenant();
+        onTenantUpdated(updated); // atualiza estado local imediatamente
+        // Não chama onRefreshTenant() aqui — evita race condition com Supabase
       } else {
-        onTenantUpdated(updated);
-        console.warn("API não confirmou a atualização do tenant. Alteração aplicada apenas na sessão atual.");
+        const err = await response.text();
+        console.warn("API retornou erro ao salvar:", err);
+        onTenantUpdated(updated); // aplica localmente mesmo assim
       }
     } catch (e) {
-      console.error(e);
-      onTenantUpdated(updated);
+      console.error("Falha de rede ao salvar tenant:", e);
+      onTenantUpdated(updated); // aplica localmente
     }
   };
 
