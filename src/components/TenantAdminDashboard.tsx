@@ -44,6 +44,7 @@ import {
   ArrowRightLeft,
   Settings,
   Save,
+  Lock,
 } from "lucide-react";
 import {
   Tenant,
@@ -3839,8 +3840,94 @@ export default function TenantAdminDashboard({
 
                 </form>
               </div>
+
+              {/* INSTAGRAM GALLERY PHOTOS - PREMIUM ONLY */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl space-y-4 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-800">Galeria de Fotos do Instagram</h3>
+                    <span className="text-[9px] bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                      <Lock size={8} /> Premium
+                    </span>
+                  </div>
+                </div>
+
+                {tenant.plan !== "premium" && userRole !== "superadmin" ? (
+                  <div className="p-6 bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-100 rounded-xl text-center space-y-3">
+                    <div className="w-10 h-10 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow">
+                      <Lock size={18} className="text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-sm text-slate-800">Funcionalidade Exclusiva Premium</h4>
+                      <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+                        Cadastre até 6 fotos do seu Instagram para exibir uma galeria real no seu site público e atrair mais seguidores.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleUpgradeToPlan("premium")}
+                      className="px-5 py-2 inline-block bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow cursor-pointer transition-all active:scale-95"
+                    >
+                      Fazer Upgrade para Premium Agora
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 text-xs">
+                    <p className="text-slate-500 leading-relaxed">
+                      Cole abaixo os links diretos das fotos que deseja exibir na galeria do seu site. Para obter o link de uma foto do Instagram, abra a foto no navegador, clique com o botão direito na imagem e selecione "Copiar endereço da imagem".
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[0, 1, 2, 3, 4, 5].map((idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="url"
+                              value={(settingsDraft as any).instagramPhotos?.[idx] || ""}
+                              onChange={(e) => {
+                                const current = [...(((settingsDraft as any).instagramPhotos) || ["", "", "", "", "", ""])];
+                                while (current.length < 6) current.push("");
+                                current[idx] = e.target.value;
+                                setSettingsDraft((prev) => ({ ...prev, instagramPhotos: current } as any));
+                              }}
+                              placeholder={`URL da foto ${idx + 1}`}
+                              className="flex-1 p-2 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-pink-400 placeholder-slate-400 font-mono text-[10px]"
+                            />
+                            {((settingsDraft as any).instagramPhotos?.[idx]) && (
+                              <div className="w-8 h-8 rounded border border-slate-200 bg-slate-50 overflow-hidden shrink-0">
+                                <img
+                                  src={(settingsDraft as any).instagramPhotos?.[idx]}
+                                  alt={`Preview ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={handleSaveSiteSettings}
+                        disabled={isSavingSiteSettings}
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs px-5 py-2.5 rounded-lg cursor-pointer transition-all shadow"
+                      >
+                        <Save size={13} />
+                        {isSavingSiteSettings ? "Salvando..." : "Salvar Fotos da Galeria"}
+                      </button>
+                      <p className="text-[10px] text-slate-400">As fotos aparecem automaticamente na aba Instagram do seu site público.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
+
         </main>
       </div>
     </div>

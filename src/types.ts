@@ -144,6 +144,7 @@ export interface Tenant {
   createdAt: string;
   planExpiration: string;
   productsToSell?: SalesProductItem[];
+  instagramPhotos?: string[]; // até 6 URLs de fotos da galeria (exclusivo plano Premium)
 }
 
 export interface SalesProductItem {

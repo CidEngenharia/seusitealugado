@@ -48,6 +48,10 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
     setThemeMode(isPremiumThemeEnabled ? (tenant.themeMode || 'dark') : 'light');
   }, [tenant.themeMode, tenant.plan]);
 
+  useEffect(() => {
+    document.title = `${tenant.name} | SeuSiteAlugado`;
+  }, [tenant.name]);
+
   const [activeTab, setActiveTab] = useState<'services' | 'reviews' | 'about' | 'products'>('services');
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -834,16 +838,41 @@ END:VCARD`;
                 Acompanhe nossas novidades, produtos e serviços pelo nosso perfil!
               </p>
               
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="aspect-square bg-zinc-800 rounded-xl overflow-hidden relative group">
-                    <img src={`https://images.unsplash.com/photo-${1500000000000 + (i * 10)}?w=300&h=300&fit=crop`} alt="Instagram post" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Instagram className="text-white w-6 h-6" />
-                    </div>
+              {(() => {
+                const customPhotos = (tenant as any).instagramPhotos?.filter((u: string) => u && u.trim()) || [];
+                const placeholderPhotos = [
+                  'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&h=300&fit=crop',
+                  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=300&fit=crop',
+                  'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=300&h=300&fit=crop',
+                  'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=300&h=300&fit=crop',
+                  'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=300&h=300&fit=crop',
+                  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=300&fit=crop',
+                ];
+                const photos = customPhotos.length > 0 ? customPhotos : placeholderPhotos;
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                    {photos.slice(0, 6).map((src: string, i: number) => (
+                      <div key={i} className="aspect-square bg-zinc-800 rounded-xl overflow-hidden relative group">
+                        <img
+                          src={src}
+                          alt={`Instagram post ${i + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Instagram className="text-white w-6 h-6" />
+                        </div>
+                      </div>
+                    ))}
+                    {customPhotos.length === 0 && (
+                      <div className="col-span-2 md:col-span-3 text-center text-xs text-zinc-500 pt-1 pb-2">
+                        Imagens ilustrativas — cadastre suas fotos reais no painel admin.
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
 
               <a 
                 href={tenant.socials.instagram.startsWith('http') ? tenant.socials.instagram : `https://instagram.com/${tenant.socials.instagram.replace('@', '')}`}

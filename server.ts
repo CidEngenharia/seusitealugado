@@ -6,6 +6,7 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
@@ -203,6 +204,7 @@ function assembleTenant(
     marketingCampaigns: campaigns.map(mapCampaign),
     reviews: reviews.map(mapReview),
     productsToSell: productsToSell.map(mapProductToSell),
+    instagramPhotos: t.instagram_photos || [],
   };
 }
 
@@ -277,6 +279,7 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
     plan: updatedTenant.plan,
     status: updatedTenant.status,
     plan_expiration: updatedTenant.planExpiration,
+    instagram_photos: (updatedTenant as any).instagramPhotos || [],
   }, { onConflict: "id" });
 
   if (tenantError) throw tenantError;
@@ -797,10 +800,82 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    
+    app.get("*", async (req, res) => {
+      const urlPath = req.path.substring(1); // remove leading slash
+      const slug = urlPath.split("/")[0].toLowerCase();
+      
+      // Se for uma requisição de arquivo estático ou rota de API, serve o index.html padrão
+      if (slug === "" || slug === "api" || slug.includes(".")) {
+        res.sendFile(path.join(distPath, "index.html"));
+        return;
+      }
+      
+      try {
+        // Busca o tenant no Supabase pelo slug
+        const { data: tenantRow } = await supabase
+          .from("tenants")
+          .select("*")
+          .ilike("slug", slug)
+          .maybeSingle();
+          
+        let title = "SeuSiteAlugado - Aluguel de Sites Profissionais";
+        let description = "Alugue seu site profissional em apenas 20 segundos com controle de agendamentos, estoque, faturamento e CRM.";
+        let logoUrl = "https://seusitealugado.vercel.app/favicon.png";
+        
+        if (tenantRow) {
+          const tenant = await fetchFullTenant(tenantRow);
+          title = `${tenant.name} | SeuSiteAlugado`;
+          description = tenant.description || description;
+          
+          // Se for imagem local, aponta para a URL absoluta da Vercel
+          if (tenant.logoUrl) {
+            if (tenant.logoUrl.startsWith("/src/") || tenant.logoUrl.startsWith("src/")) {
+              // Convert local path to absolute vercel public path
+              logoUrl = `https://seusitealugado.vercel.app${tenant.logoUrl.replace("/src/assets", "/assets").replace("src/assets", "/assets")}`;
+            } else {
+              logoUrl = tenant.logoUrl;
+            }
+          }
+        }
+        
+        // Lê o index.html gerado pelo build do Vite
+        let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
+        
+        // Injeta as tags Open Graph/Twitter dinâmicas no <head>
+        const ogMetaTags = `
+    <title>${title}</title>
+    <meta name="description" content="${description}" />
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:image" content="${logoUrl}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:title" content="${title}" />
+    <meta name="twitter:description" content="${description}" />
+    <meta name="twitter:image" content="${logoUrl}" />
+        `;
+        
+        // Limpa as tags originais do index.html para não duplicar
+        html = html.replace(/<title>.*?<\/title>/gi, "");
+        html = html.replace(/<meta name="description" content=".*?" \/>/gi, "");
+        html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, "");
+        html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, "");
+        html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, "");
+        html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, "");
+        html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, "");
+        html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, "");
+        
+        // Insere as novas no topo do <head>
+        html = html.replace("<head>", `<head>${ogMetaTags}`);
+        
+        res.send(html);
+      } catch (err) {
+        // Fallback caso dê erro na leitura ou banco
+        res.sendFile(path.join(distPath, "index.html"));
+      }
     });
-    console.log("Produção ativa: Servindo arquivos estáticos em /dist.");
+    console.log("Produção ativa: Servindo arquivos estáticos em /dist com SEO dinâmico.");
   }
 
   app.listen(PORT, "0.0.0.0", () => {
