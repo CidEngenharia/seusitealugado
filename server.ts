@@ -878,9 +878,13 @@ async function startServer() {
     console.log("Produção ativa: Servindo arquivos estáticos em /dist com SEO dinâmico.");
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[SiteAlugado] ✅ Servidor rodando na porta ${PORT} — Banco: Supabase`);
-  });
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`[SiteAlugado] ✅ Servidor rodando na porta ${PORT} — Banco: Supabase`);
+    });
+  }
 }
 
 startServer();
+
+export default app;
