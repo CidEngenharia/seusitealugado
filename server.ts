@@ -413,6 +413,36 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
 // REST Endpoints
 // ============================================================
 
+
+app.get("/api/instagram-image-proxy", async (req, res) => {
+  const imageUrl = req.query.url as string;
+  if (!imageUrl) {
+    res.status(400).send("Faltando parâmetro url");
+    return;
+  }
+  try {
+    const fetchResponse = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    if (!fetchResponse.ok) {
+      res.status(fetchResponse.status).send("Erro ao buscar a imagem");
+      return;
+    }
+    const contentType = fetchResponse.headers.get("content-type") || "image/jpeg";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    
+    const arrayBuffer = await fetchResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    res.send(buffer);
+  } catch (err: any) {
+    console.error("Erro no proxy de imagem do Instagram:", err);
+    res.status(500).send("Erro interno no servidor");
+  }
+});
+
 // GET /api/tenants — lista todos os tenants com dados completos
 app.get("/api/tenants", async (req, res) => {
   try {

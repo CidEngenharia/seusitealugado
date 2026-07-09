@@ -60,6 +60,19 @@ import {
 } from "../types";
 import LogoSeusiteAlugado from "./LogoSeusiteAlugado";
 
+function getInstagramMediaUrl(url: string): string {
+  if (!url) return "";
+  const match = url.match(/(?:instagram\.com)\/(?:p|reel|tv)\/([a-zA-Z0-9_\-]+)/i);
+  if (match && match[1]) {
+    const directMediaUrl = `https://www.instagram.com/p/${match[1]}/media/?size=l`;
+    return `/api/instagram-image-proxy?url=${encodeURIComponent(directMediaUrl)}`;
+  }
+  if (url.includes("cdninstagram.com") || url.includes("fbcdn.net")) {
+    return `/api/instagram-image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
 const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.7): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -3889,7 +3902,7 @@ export default function TenantAdminDashboard({
                             {((settingsDraft as any).instagramPhotos?.[idx]) && (
                               <div className="w-8 h-8 rounded border border-slate-200 bg-slate-50 overflow-hidden shrink-0">
                                 <img
-                                  src={(settingsDraft as any).instagramPhotos?.[idx]}
+                                  src={getInstagramMediaUrl((settingsDraft as any).instagramPhotos?.[idx])}
                                   alt={`Preview ${idx + 1}`}
                                   className="w-full h-full object-cover"
                                   referrerPolicy="no-referrer"

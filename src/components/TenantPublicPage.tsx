@@ -32,6 +32,19 @@ import {
 } from "lucide-react";
 import { Tenant, Service, Booking, ReviewItem } from "../types";
 
+function getInstagramMediaUrl(url: string): string {
+  if (!url) return "";
+  const match = url.match(/(?:instagram\.com)\/(?:p|reel|tv)\/([a-zA-Z0-9_\-]+)/i);
+  if (match && match[1]) {
+    const directMediaUrl = `https://www.instagram.com/p/${match[1]}/media/?size=l`;
+    return `/api/instagram-image-proxy?url=${encodeURIComponent(directMediaUrl)}`;
+  }
+  if (url.includes("cdninstagram.com") || url.includes("fbcdn.net")) {
+    return `/api/instagram-image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
 interface TenantPublicPageProps {
   tenant: Tenant;
   onRefreshTenant: () => void;
@@ -863,7 +876,7 @@ END:VCARD`;
                           className="aspect-square bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] rounded-xl overflow-hidden relative group shadow-lg cursor-pointer block"
                         >
                           <img
-                            src={src}
+                            src={getInstagramMediaUrl(src)}
                             alt={`Instagram post ${i + 1}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100 absolute inset-0 z-10"
                             referrerPolicy="no-referrer"
