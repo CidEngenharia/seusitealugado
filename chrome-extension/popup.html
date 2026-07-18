@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Radar de Concorrentes</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div className="container">
+    <header>
+      <div className="logo-area">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" className="radar-icon"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12L20 8"/></svg>
+        <h1>Radar de Concorrentes</h1>
+      </div>
+      <span className="badge">Premium</span>
+    </header>
+
+    <main>
+      <form id="search-form">
+        <div className="form-group">
+          <label for="niche">Segmento</label>
+          <select id="niche">
+            <option value="Oficina">🔧 Oficina Mecânica</option>
+            <option value="Barbearia">✂️ Barbearia</option>
+            <option value="Salão">💅 Salão de Beleza</option>
+            <option value="Dentista">🦷 Dentista / Odonto</option>
+            <option value="Clínica">🏥 Clínica Médica</option>
+            <option value="Mercado">🛒 Supermercado / Mercado</option>
+            <option value="Restaurante">🍽️ Restaurante / Cafeteria</option>
+          </select>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label for="city">Cidade</label>
+            <input type="text" id="city" value="Salvador" placeholder="Ex: Salvador" required>
+          </div>
+          <div className="form-group">
+            <label for="neighborhood">Bairro (opcional)</label>
+            <input type="text" id="neighborhood" placeholder="Ex: Pituba">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-search">Buscar Concorrentes</button>
+      </form>
+
+      <div id="results-container" className="hidden">
+        <h3>Resultados Próximos</h3>
+        <div id="results-list"></div>
+      </div>
+
+      <div id="loading" className="hidden">
+        <div className="spinner"></div>
+        <p>Vasculhando a região...</p>
+      </div>
+
+      <div id="error-message" className="error hidden"></div>
+    </main>
+
+    <footer>
+      <span>Site Alugado S.A. • Inteligência de Mercado</span>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

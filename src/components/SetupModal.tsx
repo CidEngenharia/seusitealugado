@@ -16,24 +16,47 @@ interface SetupModalProps {
   onSuccess: (slug: string) => void;
 }
 
-// Categorias de negócio disponíveis
+// Categorias de negócio sincronizadas com a Landing Page
 const CATEGORIES = [
-  { id: "barbearia", label: "Barbearia" },
-  { id: "salao_beleza", label: "Salão de Beleza" },
-  { id: "estetica", label: "Estética & Spa" },
-  { id: "oficina", label: "Oficina Mecânica" },
-  { id: "manicure", label: "Manicure / Pedicure" },
-  { id: "personal_trainer", label: "Personal Trainer" },
-  { id: "lava_jato", label: "Lava-jato" },
-  { id: "doceria", label: "Doceria / Confeitaria" },
-  { id: "acaiteria", label: "Açaíteria" },
-  { id: "loja", label: "Loja / Comércio" },
-  { id: "buffet", label: "Buffet / Eventos" },
-  { id: "maquiadora", label: "Maquiadora" },
-  { id: "chaveiro", label: "Chaveiro" },
-  { id: "eletricista", label: "Eletricista" },
-  { id: "outro", label: "Outro Serviço" },
+  { id: "barbearia", label: "✂️ Barbearia" },
+  { id: "salao_beleza", label: "💅 Salão de Beleza" },
+  { id: "estetica", label: "✨ Estética & Spa" },
+  { id: "oficina", label: "🔧 Oficina Mecânica" },
+  { id: "lava_jato", label: "🚗 Lava-jato" },
+  { id: "manicure", label: "💅 Manicure / Pedicure" },
+  { id: "maquiadora", label: "💄 Maquiadora" },
+  { id: "personal_trainer", label: "🏋️ Personal Trainer" },
+  { id: "doceria", label: "🎂 Doceria / Confeitaria" },
+  { id: "acaiteria", label: "🍇 Açaíteria" },
+  { id: "loja", label: "🛍️ Loja / Comércio" },
+  { id: "buffet", label: "🎉 Buffet / Eventos" },
+  { id: "chaveiro", label: "🔑 Chaveiro" },
+  { id: "eletricista", label: "⚡ Eletricista" },
+  { id: "som_automotivo", label: "🔊 Som Automotivo" },
+  { id: "dedetizacao", label: "🪲 Dedetização" },
+  { id: "outro", label: "🏪 Outro Serviço" },
 ];
+
+// Defaults de layout por categoria
+const CATEGORY_DEFAULTS: Record<string, { themeColor: string; template: string; accent: string }> = {
+  barbearia:       { themeColor: "amber",   template: "modern",  accent: "Corte, barba e estilo" },
+  salao_beleza:    { themeColor: "rose",    template: "modern",  accent: "Cabelo, beleza e transformação" },
+  estetica:        { themeColor: "purple",  template: "minimal", accent: "Tratamentos faciais e corporais" },
+  oficina:         { themeColor: "blue",    template: "classic", accent: "Manutenção e reparo automotivo" },
+  lava_jato:       { themeColor: "blue",    template: "classic", accent: "Limpeza e conservação do veículo" },
+  manicure:        { themeColor: "pink",    template: "minimal", accent: "Unhas, esmalteria e beleza" },
+  maquiadora:      { themeColor: "rose",    template: "minimal", accent: "Make profissional e beleza" },
+  personal_trainer:{ themeColor: "green",   template: "modern",  accent: "Treino personalizado e saúde" },
+  doceria:         { themeColor: "amber",   template: "classic", accent: "Doces artesanais e confeitaria" },
+  acaiteria:       { themeColor: "purple",  template: "classic", accent: "Açaí, vitaminas e shakes" },
+  loja:            { themeColor: "indigo",  template: "classic", accent: "Produtos e variedades" },
+  buffet:          { themeColor: "amber",   template: "modern",  accent: "Eventos, festas e celebrações" },
+  chaveiro:        { themeColor: "zinc",    template: "classic", accent: "Cópia de chaves e fechaduras" },
+  eletricista:     { themeColor: "yellow",  template: "classic", accent: "Instalações e manutenção elétrica" },
+  som_automotivo:  { themeColor: "blue",    template: "modern",  accent: "Som, multimídia e acessórios" },
+  dedetizacao:     { themeColor: "green",   template: "classic", accent: "Controle de pragas e desinsetização" },
+  outro:           { themeColor: "amber",   template: "modern",  accent: "Serviços profissionais" },
+};
 
 // Templates disponíveis por plano
 const TEMPLATES = [
@@ -149,6 +172,9 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
     setCreateError("");
     const finalSlug = slugify(slug);
 
+    const categoryDefaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS["outro"];
+    const categoryLabel = CATEGORIES.find(c => c.id === category)?.label?.replace(/^[\s\S]{0,3}/, "").trim() || category;
+
     const newTenant = {
       id: "t-" + Date.now(),
       slug: finalSlug,
@@ -157,11 +183,11 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
       ownerEmail: email,
       logoUrl: "",
       bannerUrl: "",
-      themeColor: "amber",
+      themeColor: categoryDefaults.themeColor,
       themeMode: "dark",
       fontFamily: "sans",
-      template: selectedTemplate,
-      description: `${businessName} — ${CATEGORIES.find(c => c.id === category)?.label || category}`,
+      template: categoryDefaults.template,
+      description: `${businessName} — ${categoryLabel}. ${categoryDefaults.accent}.`,
       address: "",
       openingHours: "Seg–Sex 08h–18h",
       socials: { whatsapp, phone: whatsapp, email },
@@ -204,7 +230,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
 
   const isStep1Valid = businessName.trim().length >= 2 && category && ownerName.trim().length >= 2;
   const isStep2Valid = whatsapp.trim().length >= 9 && email.trim().includes("@");
-  const isStep3Valid = slugStatus === "available" && selectedTemplate;
+  const isStep3Valid = slugStatus === "available";
 
   // === Tela de Sucesso ===
   if (success) {
@@ -451,39 +477,55 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
               <div>
                 <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
                   <Layout size={16} className="text-yellow-400" />
-                  Escolha o Layout Visual
+                  Layout Inteligente Selecionado
                 </h3>
-                <div className="space-y-3">
-                  {availableTemplates.map((tmpl) => (
-                    <button
-                      key={tmpl.id}
-                      type="button"
-                      onClick={() => setSelectedTemplate(tmpl.id)}
-                      className={`w-full p-4 rounded-2xl border text-left transition-all ${
-                        selectedTemplate === tmpl.id
-                          ? "border-yellow-400/50 bg-yellow-400/5"
-                          : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${tmpl.accent} flex items-center justify-center`}>
-                            <Layout size={14} className="text-white" />
+                <div className="p-4 rounded-2xl border border-yellow-400/30 bg-yellow-400/5 space-y-3">
+                  {(() => {
+                    const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS["outro"];
+                    const tmplInfo = TEMPLATES.find(t => t.id === defaults.template) || TEMPLATES[0];
+                    const catLabel = CATEGORIES.find(c => c.id === category)?.label?.replace(/^[\s\S]{0,3}/, "").trim() || category;
+                    
+                    // Mapeamento de cores amigáveis
+                    const colorNames: Record<string, string> = {
+                      amber: "Âmbar & Dourado",
+                      rose: "Rosa & Coral",
+                      purple: "Roxo & Violeta",
+                      blue: "Azul Marinho",
+                      pink: "Pink & Romance",
+                      green: "Verde Esmeralda",
+                      yellow: "Amarelo Neon",
+                      zinc: "Cinza Premium",
+                      indigo: "Índigo Real"
+                    };
+
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${tmplInfo.accent} flex items-center justify-center`}>
+                              <Sparkles size={16} className="text-white" />
+                            </div>
+                            <div>
+                              <span className="block font-black text-white text-sm">Tema: {tmplInfo.name}</span>
+                              <span className="block text-[10px] text-zinc-400">Estilo moderno otimizado</span>
+                            </div>
                           </div>
-                          <span className="font-black text-white text-sm">{tmpl.name}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-400/40 bg-yellow-400/10 text-yellow-400">
+                            Recomendado
+                          </span>
                         </div>
-                        <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${tmpl.badge}`}>
-                          {selectedTemplate === tmpl.id ? "Selecionado" : "Selecionar"}
+                        
+                        <div className="pt-2.5 border-t border-zinc-800 space-y-2 text-[11px] text-zinc-400">
+                          <p>O sistema configurou automaticamente o visual ideal para <strong>{catLabel}</strong>:</p>
+                          <ul className="space-y-1.5 pl-3 list-disc">
+                            <li>Paleta de Cores: <strong className="text-white">{colorNames[defaults.themeColor] || defaults.themeColor}</strong></li>
+                            <li>Estrutura do Site: <strong className="text-white">{tmplInfo.description}</strong></li>
+                            <li>Foco Principal: <strong className="text-white">{defaults.accent}</strong></li>
+                          </ul>
                         </div>
-                      </div>
-                      <p className="text-[11px] text-zinc-400 leading-relaxed">{tmpl.description}</p>
-                    </button>
-                  ))}
-                  {plan === "basic" && (
-                    <p className="text-[10px] text-zinc-500 text-center">
-                      O template Minimal está disponível apenas nos planos Profissional e Premium.
-                    </p>
-                  )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

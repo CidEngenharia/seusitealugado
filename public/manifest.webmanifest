@@ -21,5 +21,19 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Radar de Concorrentes",
+      "short_name": "Radar",
+      "url": "/?tab=marketRadar",
+      "description": "Pesquise concorrentes na sua região",
+      "icons": [
+        {
+          "src": "/favicon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

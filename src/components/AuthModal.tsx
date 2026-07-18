@@ -1,6 +1,27 @@
 import React, { useState } from "react";
-import { X, Lock, Mail, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { X, Lock, Mail, AlertCircle, Loader2, Eye, EyeOff, Building2 } from "lucide-react";
 import { Tenant } from "../types";
+
+// Lista de categorias sincronizada com a Landing Page
+const SIGNUP_CATEGORIES = [
+  { id: "barbearia", label: "✂️ Barbearia" },
+  { id: "salao_beleza", label: "💅 Salão de Beleza" },
+  { id: "oficina", label: "🔧 Oficina Mecânica" },
+  { id: "lava_jato", label: "🚗 Lava-jato" },
+  { id: "estetica", label: "✨ Estética & Spa" },
+  { id: "manicure", label: "💅 Manicure / Pedicure" },
+  { id: "maquiadora", label: "💄 Maquiadora" },
+  { id: "personal_trainer", label: "🏋️ Personal Trainer" },
+  { id: "doceria", label: "🎂 Doceria / Confeitaria" },
+  { id: "acaiteria", label: "🍇 Açaíteria" },
+  { id: "loja", label: "🛍️ Loja / Comércio" },
+  { id: "buffet", label: "🎉 Buffet / Eventos" },
+  { id: "chaveiro", label: "🔑 Chaveiro" },
+  { id: "eletricista", label: "⚡ Eletricista" },
+  { id: "som_automotivo", label: "🔊 Som Automotivo" },
+  { id: "dedetizacao", label: "🪲 Dedetização" },
+  { id: "outro", label: "🏪 Outro Serviço" },
+];
 
 // ── Super admins hardcoded (sem backend de autenticação real ainda) ──
 const SUPER_ADMIN_CREDENTIALS: Record<string, string> = {
@@ -162,29 +183,31 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
 
           {/* Categoria (somente cadastro) */}
           {!isLogin && (
-            <select
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/60 transition-colors appearance-none cursor-pointer"
-            >
-              <option value="" className="text-black">Selecione a Categoria</option>
-              <option value="barbearias" className="text-black">Barbearias</option>
-              <option value="salao_beleza" className="text-black">Salão de Beleza</option>
-              <option value="oficina" className="text-black">Oficina</option>
-              <option value="chaveiro" className="text-black">Chaveiro</option>
-              <option value="eletricista" className="text-black">Eletricista</option>
-              <option value="pintor" className="text-black">Pintor</option>
-              <option value="serralheiro" className="text-black">Serralheiro</option>
-              <option value="gesseiro" className="text-black">Gesseiro</option>
-              <option value="doceira" className="text-black">Doceira</option>
-              <option value="acaiteria" className="text-black">Açaíteria</option>
-              <option value="loja" className="text-black">Loja</option>
-              <option value="buffet" className="text-black">Buffet</option>
-              <option value="manicure_pedicure" className="text-black">Manicure/Pedicure</option>
-              <option value="maquiadora" className="text-black">Maquiadora</option>
-              <option value="lava_jato" className="text-black">Lava-jato</option>
-              <option value="personal_trainer" className="text-black">Personal trainer</option>
-            </select>
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                <Building2 size={11} />
+                Segmento do Negócio
+              </label>
+              <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                {SIGNUP_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setNewCategory(cat.id)}
+                    className={`px-2.5 py-2 rounded-xl border text-left text-[11px] font-medium transition-all cursor-pointer ${
+                      newCategory === cat.id
+                        ? "bg-yellow-400/15 border-yellow-400/50 text-yellow-300"
+                        : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+              {!newCategory && (
+                <p className="text-[10px] text-zinc-500">Selecione o segmento do seu negócio</p>
+              )}
+            </div>
           )}
 
           {/* Mensagem de erro */}

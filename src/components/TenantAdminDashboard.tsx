@@ -45,7 +45,9 @@ import {
   Settings,
   Save,
   Lock,
+  Radar,
 } from "lucide-react";
+import MarketRadar from "./market-radar/MarketRadar";
 import {
   Tenant,
   Service,
@@ -141,6 +143,7 @@ export default function TenantAdminDashboard({
     | "reviews"
     | "settings"
     | "salesProducts"
+    | "marketRadar"
   >("overview");
 
   // Upgrade state simulation
@@ -473,7 +476,7 @@ export default function TenantAdminDashboard({
   // Check feature permission per tier
   const isFeatureLocked = (tab: string): boolean => {
     if (userRole === "superadmin") return false; // Super admin has full access to all tabs
-    if (tab === "salesProducts") {
+    if (tab === "salesProducts" || tab === "marketRadar") {
       return tenant.plan !== "premium";
     }
     if (tenant.plan === "basic") {
@@ -1043,6 +1046,19 @@ export default function TenantAdminDashboard({
               <span>Venda de Produtos</span>
             </div>
             {isFeatureLocked("salesProducts") && (
+              <Lock size={12} className="text-slate-400" />
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("marketRadar")}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${activeTab === "marketRadar" ? "bg-indigo-50 text-indigo-700 border border-indigo-100/50 font-bold shadow-inner" : "text-slate-650 hover:bg-slate-50 hover:text-indigo-600"}`}
+          >
+            <div className="flex items-center gap-3">
+              <Radar size={14} />
+              <span>Radar de Concorrentes</span>
+            </div>
+            {isFeatureLocked("marketRadar") && (
               <Lock size={12} className="text-slate-400" />
             )}
           </button>
@@ -3288,6 +3304,11 @@ export default function TenantAdminDashboard({
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB: MARKET RADAR AI (PREMIUM ONLY) */}
+          {activeTab === "marketRadar" && (
+            <MarketRadar tenant={tenant} onTenantUpdated={onTenantUpdated} />
           )}
 
           {/* TAB: SETTINGS & BRAND COR SETUP */}
