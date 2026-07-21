@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -46,6 +46,8 @@ import {
   Save,
   Lock,
   Radar,
+  FileText,
+  CreditCard,
 } from "lucide-react";
 import MarketRadar from "./market-radar/MarketRadar";
 import {
@@ -59,6 +61,12 @@ import {
   ReceivableItem,
   ReviewItem,
   CampaignItem,
+  FormField,
+  FormConfig,
+  FormSubmission,
+  PaymentConfig,
+  SeoAnalyticsConfig,
+  WhatsappWidgetConfig,
 } from "../types";
 import LogoSeusiteAlugado from "./LogoSeusiteAlugado";
 
@@ -144,6 +152,8 @@ export default function TenantAdminDashboard({
     | "settings"
     | "salesProducts"
     | "marketRadar"
+    | "customForm"
+    | "payment"
   >("overview");
 
   // Upgrade state simulation
@@ -154,6 +164,44 @@ export default function TenantAdminDashboard({
   const [aiTaskType, setAiTaskType] = useState<string>("summary");
   const [aiResponse, setAiResponse] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+
+  // Construtor de Formulário States
+  const [formEnabled, setFormEnabled] = useState<boolean>(tenant.customForm?.enabled || false);
+  const [formTitle, setFormTitle] = useState<string>(tenant.customForm?.title || "Fale Conosco");
+  const [formDestination, setFormDestination] = useState<'dashboard' | 'email' | 'whatsapp'>(tenant.customForm?.destination || 'dashboard');
+  const [formDestinationEmail, setFormDestinationEmail] = useState<string>(tenant.customForm?.destinationEmail || tenant.ownerEmail);
+  const [formDestinationWhatsapp, setFormDestinationWhatsapp] = useState<string>(tenant.customForm?.destinationWhatsapp || tenant.socials.whatsapp || "");
+  const [formFields, setFormFields] = useState<FormField[]>(tenant.customForm?.fields || [
+    { id: "f-name", type: "text", label: "Nome Completo", required: true },
+    { id: "f-email", type: "email", label: "E-mail de Contato", required: true },
+    { id: "f-message", type: "textarea", label: "Mensagem", required: true }
+  ]);
+  
+  // Variáveis para adicionar novo campo
+  const [newFieldLabel, setNewFieldLabel] = useState<string>("");
+  const [newFieldType, setNewFieldType] = useState<'text' | 'email' | 'tel' | 'textarea' | 'file'>("text");
+  const [newFieldRequired, setNewFieldRequired] = useState<boolean>(true);
+  const [newFieldPlaceholder, setNewFieldPlaceholder] = useState<string>("");
+
+  // Pagamentos / Wix Payments States
+  const [paymentEnabled, setPaymentEnabled] = useState<boolean>(tenant.paymentConfig?.enabled || false);
+  const [paymentGateway, setPaymentGateway] = useState<'pix_whatsapp' | 'stripe' | 'mercadopago' | 'pagbank'>(tenant.paymentConfig?.gateway || 'pix_whatsapp');
+  const [paymentPixKey, setPaymentPixKey] = useState<string>(tenant.paymentConfig?.pixKey || "");
+  const [paymentPixHolder, setPaymentPixHolder] = useState<string>(tenant.paymentConfig?.pixHolderName || "");
+  const [paymentStripeKey, setPaymentStripeKey] = useState<string>(tenant.paymentConfig?.stripePublicKey || "");
+  const [paymentMpKey, setPaymentMpKey] = useState<string>(tenant.paymentConfig?.mercadopagoPublicKey || "");
+  const [paymentPbKey, setPaymentPbKey] = useState<string>(tenant.paymentConfig?.pagbankPublicKey || "");
+
+  // Widget de WhatsApp
+  const [waWidgetEnabled, setWaWidgetEnabled] = useState<boolean>(tenant.whatsappWidgetConfig?.enabled || false);
+  const [waWidgetPhone, setWaWidgetPhone] = useState<string>(tenant.whatsappWidgetConfig?.phoneNumber || "");
+  const [waWidgetMessage, setWaWidgetMessage] = useState<string>(tenant.whatsappWidgetConfig?.defaultMessage || "Olá, vim pelo site e gostaria de saber mais sobre...");
+  
+  // SEO & Analytics
+  const [seoFbPixel, setSeoFbPixel] = useState<string>(tenant.seoAnalyticsConfig?.facebookPixelId || "");
+  const [seoGaId, setSeoGaId] = useState<string>(tenant.seoAnalyticsConfig?.googleAnalyticsId || "");
+  const [seoMetaTitle, setSeoMetaTitle] = useState<string>(tenant.seoAnalyticsConfig?.metaTitle || "");
+  const [seoMetaDesc, setSeoMetaDesc] = useState<string>(tenant.seoAnalyticsConfig?.metaDescription || "");
 
   // Add Item States inside workspace
   const [showAddService, setShowAddService] = useState(false);
@@ -381,10 +429,41 @@ export default function TenantAdminDashboard({
   const [isCompressingBanner, setIsCompressingBanner] = useState(false);
   const [isSavingSiteSettings, setIsSavingSiteSettings] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState<Tenant>(tenant);
+  // Rastreia qual tenant está aberto — só sincroniza o rascunho quando TROCA de tenant
+  const lastTenantIdRef = useRef<string>(tenant.id);
 
   useEffect(() => {
-    setSettingsDraft(tenant);
-  }, [tenant.id]);
+    if (tenant.id !== lastTenantIdRef.current) {
+      // Usuário navegou para um tenant diferente — reinicia o rascunho
+      lastTenantIdRef.current = tenant.id;
+      setSettingsDraft(tenant);
+    }
+    // Sincroniza estados locais com as atualizações vindas da prop
+    setFormEnabled(tenant.customForm?.enabled || false);
+    setFormTitle(tenant.customForm?.title || "Fale Conosco");
+    setFormDestination(tenant.customForm?.destination || 'dashboard');
+    setFormDestinationEmail(tenant.customForm?.destinationEmail || tenant.ownerEmail);
+    setFormDestinationWhatsapp(tenant.customForm?.destinationWhatsapp || tenant.socials.whatsapp || "");
+    setFormFields(tenant.customForm?.fields || [
+      { id: "f-name", type: "text", label: "Nome Completo", required: true },
+      { id: "f-email", type: "email", label: "E-mail de Contato", required: true },
+      { id: "f-message", type: "textarea", label: "Mensagem", required: true }
+    ]);
+    setPaymentEnabled(tenant.paymentConfig?.enabled || false);
+    setPaymentGateway(tenant.paymentConfig?.gateway || 'pix_whatsapp');
+    setPaymentPixKey(tenant.paymentConfig?.pixKey || "");
+    setPaymentPixHolder(tenant.paymentConfig?.pixHolderName || "");
+    setPaymentStripeKey(tenant.paymentConfig?.stripePublicKey || "");
+    setPaymentMpKey(tenant.paymentConfig?.mercadopagoPublicKey || "");
+    setPaymentPbKey(tenant.paymentConfig?.pagbankPublicKey || "");
+    setWaWidgetEnabled(tenant.whatsappWidgetConfig?.enabled || false);
+    setWaWidgetPhone(tenant.whatsappWidgetConfig?.phoneNumber || "");
+    setWaWidgetMessage(tenant.whatsappWidgetConfig?.defaultMessage || "Olá, vim pelo site e gostaria de saber mais sobre...");
+    setSeoFbPixel(tenant.seoAnalyticsConfig?.facebookPixelId || "");
+    setSeoGaId(tenant.seoAnalyticsConfig?.googleAnalyticsId || "");
+    setSeoMetaTitle(tenant.seoAnalyticsConfig?.metaTitle || "");
+    setSeoMetaDesc(tenant.seoAnalyticsConfig?.metaDescription || "");
+  }, [tenant]);
 
   const handleSalesProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -435,7 +514,7 @@ export default function TenantAdminDashboard({
   const [socialPlatform, setSocialPlatform] = useState<string>("instagram");
   const [socialLink, setSocialLink] = useState<string>("instagram.com/");
 
-  // Save Tenant helper — atualiza estado local imediatamente sem re-fetch
+  // Save Tenant helper — persiste no Supabase e atualiza estado local imediatamente
   const saveTenantChanges = async (updated: Tenant) => {
     try {
       const response = await fetch("/api/tenants", {
@@ -444,16 +523,22 @@ export default function TenantAdminDashboard({
         body: JSON.stringify(updated),
       });
       if (response.ok) {
-        onTenantUpdated(updated); // atualiza estado local imediatamente
-        // Não chama onRefreshTenant() aqui — evita race condition com Supabase
+        onTenantUpdated(updated); // atualiza estado global no App.tsx
+        // Atualiza a ref do ID para evitar que o useEffect resete o rascunho
+        lastTenantIdRef.current = updated.id;
+        setSettingsDraft(updated); // sincroniza o rascunho com o estado salvo
       } else {
         const err = await response.text();
         console.warn("API retornou erro ao salvar:", err);
         onTenantUpdated(updated); // aplica localmente mesmo assim
+        lastTenantIdRef.current = updated.id;
+        setSettingsDraft(updated);
       }
     } catch (e) {
       console.error("Falha de rede ao salvar tenant:", e);
       onTenantUpdated(updated); // aplica localmente
+      lastTenantIdRef.current = updated.id;
+      setSettingsDraft(updated);
     }
   };
 
@@ -471,6 +556,81 @@ export default function TenantAdminDashboard({
     };
     await saveTenantChanges(updated);
     setUpgrading(false);
+  };
+
+  // Salvar configurações do Construtor de Formulário
+  const handleSaveCustomForm = async () => {
+    const customForm: FormConfig = {
+      enabled: formEnabled,
+      title: formTitle,
+      fields: formFields,
+      destination: formDestination,
+      destinationEmail: formDestinationEmail,
+      destinationWhatsapp: formDestinationWhatsapp,
+    };
+    await saveTenantChanges({ ...tenant, customForm });
+    alert("Formulário personalizado salvo com sucesso!");
+  };
+
+  // Adicionar novo campo ao formulário
+  const handleAddFormField = () => {
+    if (!newFieldLabel.trim()) return;
+    const newField: FormField = {
+      id: "f-" + Date.now(),
+      type: newFieldType,
+      label: newFieldLabel,
+      required: newFieldRequired,
+      placeholder: newFieldPlaceholder || undefined,
+    };
+    setFormFields((prev) => [...prev, newField]);
+    setNewFieldLabel("");
+    setNewFieldType("text");
+    setNewFieldRequired(true);
+    setNewFieldPlaceholder("");
+  };
+
+  // Remover campo do formulário
+  const handleRemoveFormField = (id: string) => {
+    setFormFields((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  // Salvar configurações de Pagamento
+  const handleSavePaymentConfig = async () => {
+    const paymentConfig: PaymentConfig = {
+      enabled: paymentEnabled,
+      gateway: paymentGateway,
+      pixKey: paymentPixKey,
+      pixHolderName: paymentPixHolder,
+      stripePublicKey: paymentStripeKey,
+      mercadopagoPublicKey: paymentMpKey,
+      pagbankPublicKey: paymentPbKey,
+    };
+    await saveTenantChanges({ ...tenant, paymentConfig });
+    alert("Configuração de pagamentos salva com sucesso!");
+  };
+
+  // Salvar Widget de WhatsApp
+  const handleSaveWhatsappWidget = async () => {
+    const whatsappWidgetConfig: WhatsappWidgetConfig = {
+      enabled: waWidgetEnabled,
+      phoneNumber: waWidgetPhone,
+      defaultMessage: waWidgetMessage,
+      position: "right",
+    };
+    await saveTenantChanges({ ...tenant, whatsappWidgetConfig });
+    alert("Widget de WhatsApp salvo com sucesso!");
+  };
+
+  // Salvar SEO & Analytics
+  const handleSaveSeoAnalytics = async () => {
+    const seoAnalyticsConfig: SeoAnalyticsConfig = {
+      facebookPixelId: seoFbPixel,
+      googleAnalyticsId: seoGaId,
+      metaTitle: seoMetaTitle,
+      metaDescription: seoMetaDesc,
+    };
+    await saveTenantChanges({ ...tenant, seoAnalyticsConfig });
+    alert("Configurações de SEO e Analytics salvas com sucesso!");
   };
 
   // Check feature permission per tier
@@ -1061,6 +1221,22 @@ export default function TenantAdminDashboard({
             {isFeatureLocked("marketRadar") && (
               <Lock size={12} className="text-slate-400" />
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("customForm")}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${activeTab === "customForm" ? "bg-indigo-50 text-indigo-700 border border-indigo-100/50 font-bold shadow-inner" : "text-slate-650 hover:bg-slate-50 hover:text-indigo-600"}`}
+          >
+            <FileText size={14} />
+            <span>Formulário de Contato</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("payment")}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${activeTab === "payment" ? "bg-indigo-50 text-indigo-700 border border-indigo-100/50 font-bold shadow-inner" : "text-slate-650 hover:bg-slate-50 hover:text-indigo-600"}`}
+          >
+            <CreditCard size={14} />
+            <span>Pagamentos</span>
           </button>
 
           <button
@@ -3311,6 +3487,344 @@ export default function TenantAdminDashboard({
             <MarketRadar tenant={tenant} onTenantUpdated={onTenantUpdated} />
           )}
 
+          {/* TAB: CONSTRUTOR DE FORMULÁRIO PERSONALIZADO */}
+          {activeTab === "customForm" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold text-slate-900">Formulário de Contato Personalizado</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Crie campos personalizados para capturar leads diretamente no seu site.</p>
+                </div>
+                <button
+                  onClick={handleSaveCustomForm}
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-all shadow-md"
+                >
+                  <Save size={14} />
+                  Salvar Formulário
+                </button>
+              </div>
+
+              {/* Ativar Formulário */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Ativar Formulário no Site</h3>
+                    <p className="text-xs text-slate-500">Quando ativo, o formulário será exibido na página pública do seu site.</p>
+                  </div>
+                  <button
+                    onClick={() => setFormEnabled(!formEnabled)}
+                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${formEnabled ? "bg-indigo-600" : "bg-slate-300"}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${formEnabled ? "translate-x-7" : "translate-x-1"}`} />
+                  </button>
+                </div>
+                <div>
+                  <label className="block text-slate-500 font-bold text-xs mb-1">Título do Formulário</label>
+                  <input
+                    type="text"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                    placeholder="Ex: Entre em Contato, Solicite um Orçamento..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 font-bold text-xs mb-1">Destino das Mensagens</label>
+                  <select
+                    value={formDestination}
+                    onChange={(e) => setFormDestination(e.target.value as 'dashboard' | 'email' | 'whatsapp')}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                  >
+                    <option value="dashboard">Salvar no Painel (Mensagens recebidas)</option>
+                    <option value="whatsapp">Redirecionar para WhatsApp</option>
+                    <option value="email">Enviar por E-mail</option>
+                  </select>
+                </div>
+                {formDestination === "email" && (
+                  <div>
+                    <label className="block text-slate-500 font-bold text-xs mb-1">E-mail de destino</label>
+                    <input
+                      type="email"
+                      value={formDestinationEmail}
+                      onChange={(e) => setFormDestinationEmail(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                    />
+                  </div>
+                )}
+                {formDestination === "whatsapp" && (
+                  <div>
+                    <label className="block text-slate-500 font-bold text-xs mb-1">Número do WhatsApp (com DDD e código do país, ex: 5511999998888)</label>
+                    <input
+                      type="text"
+                      value={formDestinationWhatsapp}
+                      onChange={(e) => setFormDestinationWhatsapp(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Campos do Formulário */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-slate-800">Campos do Formulário</h3>
+                <div className="space-y-2">
+                  {formFields.map((field) => (
+                    <div key={field.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                      <div className="flex items-center gap-3">
+                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded font-bold text-[10px] uppercase">{field.type}</span>
+                        <span className="font-medium text-slate-700">{field.label}</span>
+                        {field.required && <span className="text-rose-500 text-[10px] font-bold">Obrigatório</span>}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveFormField(field.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded cursor-pointer transition-all"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Adicionar novo campo */}
+                <div className="border-t border-slate-100 pt-4 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-700">Adicionar Novo Campo</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      value={newFieldLabel}
+                      onChange={(e) => setNewFieldLabel(e.target.value)}
+                      placeholder="Nome do campo (Ex: Telefone)"
+                      className="p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                    />
+                    <select
+                      value={newFieldType}
+                      onChange={(e) => setNewFieldType(e.target.value as any)}
+                      className="p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                    >
+                      <option value="text">Texto Curto</option>
+                      <option value="email">E-mail</option>
+                      <option value="tel">Telefone</option>
+                      <option value="textarea">Texto Longo</option>
+                      <option value="file">Upload de Arquivo</option>
+                    </select>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                        <input type="checkbox" checked={newFieldRequired} onChange={(e) => setNewFieldRequired(e.target.checked)} className="rounded" />
+                        Obrigatório
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddFormField}
+                        className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded cursor-pointer transition-all"
+                      >
+                        + Adicionar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mensagens recebidas no painel */}
+              {formDestination === "dashboard" && (
+                <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Mensagens Recebidas ({tenant.formSubmissions?.length || 0})
+                  </h3>
+                  {!tenant.formSubmissions || tenant.formSubmissions.length === 0 ? (
+                    <p className="text-xs text-slate-500 text-center p-6">Nenhuma mensagem recebida ainda. Ative o formulário no seu site para começar a capturar leads.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {tenant.formSubmissions.map((sub) => (
+                        <div key={sub.id} className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-indigo-600">#{sub.id.substring(0, 12)}</span>
+                            <span className="text-slate-400 text-[10px]">{new Date(sub.createdAt).toLocaleString("pt-BR")}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {Object.entries(sub.data).map(([key, value]) => (
+                              <div key={key} className="flex gap-2">
+                                <span className="font-bold text-slate-500 shrink-0">{key}:</span>
+                                <span className="text-slate-700">{String(value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: PAGAMENTOS (PIX / WHATSAPP / GATEWAYS) */}
+          {activeTab === "payment" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold text-slate-900">Pagamentos Simplificados</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Configure como seus clientes podem te pagar diretamente pelo site.</p>
+                </div>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-all shadow-md"
+                >
+                  <Save size={14} />
+                  Salvar Pagamentos
+                </button>
+              </div>
+
+              {/* Ativar Pagamentos */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Ativar Botão de Pagamento no Site</h3>
+                    <p className="text-xs text-slate-500">Um botão "Pagar / Comprar" aparecerá nos seus produtos e serviços.</p>
+                  </div>
+                  <button
+                    onClick={() => setPaymentEnabled(!paymentEnabled)}
+                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${paymentEnabled ? "bg-emerald-600" : "bg-slate-300"}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${paymentEnabled ? "translate-x-7" : "translate-x-1"}`} />
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 font-bold text-xs mb-2">Método de Pagamento</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { value: "pix_whatsapp", label: "Pix via WhatsApp", icon: "💬" },
+                      { value: "stripe", label: "Stripe (Cartão)", icon: "💳" },
+                      { value: "mercadopago", label: "Mercado Pago", icon: "🛒" },
+                      { value: "pagbank", label: "PagBank", icon: "🏦" },
+                    ].map((g) => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => setPaymentGateway(g.value as any)}
+                        className={`p-3 rounded-xl border-2 text-xs font-bold text-center cursor-pointer transition-all ${paymentGateway === g.value ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}
+                      >
+                        <div className="text-xl mb-1">{g.icon}</div>
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Campos específicos por gateway */}
+                {paymentGateway === "pix_whatsapp" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                    <div>
+                      <label className="block text-slate-500 font-bold text-xs mb-1">Chave Pix</label>
+                      <input
+                        type="text"
+                        value={paymentPixKey}
+                        onChange={(e) => setPaymentPixKey(e.target.value)}
+                        placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 font-bold text-xs mb-1">Nome do Beneficiário (como aparece no Pix)</label>
+                      <input
+                        type="text"
+                        value={paymentPixHolder}
+                        onChange={(e) => setPaymentPixHolder(e.target.value)}
+                        placeholder="Ex: João da Silva"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="col-span-full p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-emerald-700">
+                      ✅ Com Pix via WhatsApp, ao clicar em "Comprar", o cliente será redirecionado para o WhatsApp com uma mensagem pronta contendo o nome do produto, preço e sua chave Pix para facilitar o pagamento.
+                    </div>
+                  </div>
+                )}
+                {paymentGateway === "stripe" && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="block text-slate-500 font-bold text-xs mb-1">Chave Pública do Stripe (pk_...)</label>
+                    <input
+                      type="text"
+                      value={paymentStripeKey}
+                      onChange={(e) => setPaymentStripeKey(e.target.value)}
+                      placeholder="pk_live_..."
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none font-mono"
+                    />
+                  </div>
+                )}
+                {paymentGateway === "mercadopago" && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="block text-slate-500 font-bold text-xs mb-1">Public Key do Mercado Pago (APP_USR-...)</label>
+                    <input
+                      type="text"
+                      value={paymentMpKey}
+                      onChange={(e) => setPaymentMpKey(e.target.value)}
+                      placeholder="APP_USR-..."
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none font-mono"
+                    />
+                  </div>
+                )}
+                {paymentGateway === "pagbank" && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="block text-slate-500 font-bold text-xs mb-1">Chave Pública do PagBank</label>
+                    <input
+                      type="text"
+                      value={paymentPbKey}
+                      onChange={(e) => setPaymentPbKey(e.target.value)}
+                      placeholder="Chave pública PagBank"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none font-mono"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Widget de WhatsApp */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Widget Flutuante de WhatsApp</h3>
+                    <p className="text-xs text-slate-500">Um botão flutuante verde no canto do seu site para facilitar o contato.</p>
+                  </div>
+                  <button
+                    onClick={() => setWaWidgetEnabled(!waWidgetEnabled)}
+                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${waWidgetEnabled ? "bg-emerald-600" : "bg-slate-300"}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${waWidgetEnabled ? "translate-x-7" : "translate-x-1"}`} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-500 font-bold text-xs mb-1">Número do WhatsApp (com DDI e DDD)</label>
+                    <input
+                      type="text"
+                      value={waWidgetPhone}
+                      onChange={(e) => setWaWidgetPhone(e.target.value)}
+                      placeholder="5511999998888"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Ex: 55 (Brasil) + 11 (DDD) + número. Sem espaços ou traços.</p>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 font-bold text-xs mb-1">Mensagem Pré-definida</label>
+                    <input
+                      type="text"
+                      value={waWidgetMessage}
+                      onChange={(e) => setWaWidgetMessage(e.target.value)}
+                      placeholder="Olá, vim pelo site e gostaria de saber mais sobre..."
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded text-xs focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleSaveWhatsappWidget}
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-all"
+                >
+                  <Save size={12} />
+                  Salvar Widget de WhatsApp
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TAB: SETTINGS & BRAND COR SETUP */}
           {activeTab === "settings" && (
             <div className="space-y-6">
@@ -3867,6 +4381,64 @@ export default function TenantAdminDashboard({
                 </form>
               </div>
 
+              {/* SEO & ANALYTICS */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl space-y-4 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800">SEO e Analytics</h3>
+                <p className="text-xs text-slate-500">Configure rastreamento de visitantes e otimização para os buscadores do seu site.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block text-slate-500 font-bold mb-1">ID do Pixel do Facebook</label>
+                    <input
+                      type="text"
+                      value={seoFbPixel}
+                      onChange={(e) => setSeoFbPixel(e.target.value)}
+                      placeholder="Ex: 1234567890123456"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none font-mono"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Encontre no Gerenciador de Eventos do Meta.</p>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 font-bold mb-1">ID do Google Analytics (G-...)</label>
+                    <input
+                      type="text"
+                      value={seoGaId}
+                      onChange={(e) => setSeoGaId(e.target.value)}
+                      placeholder="Ex: G-XXXXXXXXXX"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none font-mono"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Encontre em admin.google.com/analytics.</p>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 font-bold mb-1">Título da Página (meta title)</label>
+                    <input
+                      type="text"
+                      value={seoMetaTitle}
+                      onChange={(e) => setSeoMetaTitle(e.target.value)}
+                      placeholder="Ex: Barbearia Keu - Cortes Modernos em SP"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 font-bold mb-1">Descrição para o Google (meta description)</label>
+                    <input
+                      type="text"
+                      value={seoMetaDesc}
+                      onChange={(e) => setSeoMetaDesc(e.target.value)}
+                      placeholder="Ex: Barbearia especializada em cortes modernos e barba..."
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveSeoAnalytics}
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-all"
+                >
+                  <Save size={12} />
+                  Salvar SEO e Analytics
+                </button>
+              </div>
+
               {/* INSTAGRAM GALLERY PHOTOS - PREMIUM ONLY */}
               <div className="bg-white border border-slate-200 p-5 rounded-xl space-y-4 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between">
@@ -3899,36 +4471,55 @@ export default function TenantAdminDashboard({
                 ) : (
                   <div className="space-y-4 text-xs">
                     <p className="text-slate-500 leading-relaxed">
-                      Cole abaixo os links diretos das fotos que deseja exibir na galeria do seu site. Para obter o link de uma foto do Instagram, abra a foto no navegador, clique com o botão direito na imagem e selecione "Copiar endereço da imagem".
+                      Faça o upload de até 6 fotos direto do seu computador. No site público, quando os clientes clicarem nessas fotos, eles serão direcionados diretamente para o Instagram cadastrado nas redes sociais do seu site.
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {[0, 1, 2, 3, 4, 5].map((idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                        <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                             {idx + 1}
                           </div>
                           <div className="flex-1 flex items-center gap-2">
-                            <input
-                              type="url"
-                              value={(settingsDraft as any).instagramPhotos?.[idx] || ""}
-                              onChange={(e) => {
-                                const current = [...(((settingsDraft as any).instagramPhotos) || ["", "", "", "", "", ""])];
-                                while (current.length < 6) current.push("");
-                                current[idx] = e.target.value;
-                                setSettingsDraft((prev) => ({ ...prev, instagramPhotos: current } as any));
-                              }}
-                              placeholder={`URL da foto ${idx + 1}`}
-                              className="flex-1 p-2 bg-slate-50 border border-slate-200 text-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-pink-400 placeholder-slate-400 font-mono text-[10px]"
-                            />
+                            <label className="flex-1 flex items-center justify-center border border-dashed border-slate-350 hover:border-pink-500 bg-white hover:bg-pink-50/10 text-slate-650 hover:text-pink-600 p-2 rounded cursor-pointer transition-all text-xs font-semibold">
+                              <span>Upload Imagem</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    try {
+                                      const base64Str = await compressImage(e.target.files[0], 800, 800, 0.7);
+                                      const current = [...(((settingsDraft as any).instagramPhotos) || ["", "", "", "", "", ""])];
+                                      while (current.length < 6) current.push("");
+                                      current[idx] = base64Str;
+                                      setSettingsDraft((prev) => ({ ...prev, instagramPhotos: current } as any));
+                                    } catch (err) {
+                                      console.error("Erro ao processar imagem:", err);
+                                    }
+                                  }
+                                }}
+                              />
+                            </label>
                             {((settingsDraft as any).instagramPhotos?.[idx]) && (
-                              <div className="w-8 h-8 rounded border border-slate-200 bg-slate-50 overflow-hidden shrink-0">
+                              <div className="relative w-10 h-10 rounded border border-slate-200 bg-slate-100 overflow-hidden shrink-0">
                                 <img
-                                  src={getInstagramMediaUrl((settingsDraft as any).instagramPhotos?.[idx])}
+                                  src={(settingsDraft as any).instagramPhotos?.[idx]}
                                   alt={`Preview ${idx + 1}`}
                                   className="w-full h-full object-cover"
                                   referrerPolicy="no-referrer"
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                 />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const current = [...(((settingsDraft as any).instagramPhotos) || ["", "", "", "", "", ""])];
+                                    current[idx] = "";
+                                    setSettingsDraft((prev) => ({ ...prev, instagramPhotos: current } as any));
+                                  }}
+                                  className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-black cursor-pointer shadow"
+                                >
+                                  ✕
+                                </button>
                               </div>
                             )}
                           </div>

@@ -145,6 +145,58 @@ export interface Tenant {
   planExpiration: string;
   productsToSell?: SalesProductItem[];
   instagramPhotos?: string[]; // até 6 URLs de fotos da galeria (exclusivo plano Premium)
+  customForm?: FormConfig;
+  paymentConfig?: PaymentConfig;
+  seoAnalyticsConfig?: SeoAnalyticsConfig;
+  whatsappWidgetConfig?: WhatsappWidgetConfig;
+  formSubmissions?: FormSubmission[];
+}
+
+export interface FormField {
+  id: string;
+  type: 'text' | 'email' | 'tel' | 'textarea' | 'file';
+  label: string;
+  required: boolean;
+  placeholder?: string;
+}
+
+export interface FormConfig {
+  enabled: boolean;
+  title: string;
+  fields: FormField[];
+  destination: 'dashboard' | 'email' | 'whatsapp';
+  destinationEmail?: string;
+  destinationWhatsapp?: string;
+}
+
+export interface FormSubmission {
+  id: string;
+  data: Record<string, string>;
+  createdAt: string;
+}
+
+export interface PaymentConfig {
+  enabled: boolean;
+  gateway: 'pix_whatsapp' | 'stripe' | 'mercadopago' | 'pagbank';
+  pixKey?: string;
+  pixHolderName?: string;
+  stripePublicKey?: string;
+  mercadopagoPublicKey?: string;
+  pagbankPublicKey?: string;
+}
+
+export interface SeoAnalyticsConfig {
+  facebookPixelId?: string;
+  googleAnalyticsId?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+}
+
+export interface WhatsappWidgetConfig {
+  enabled: boolean;
+  phoneNumber?: string;
+  defaultMessage?: string;
+  position?: 'right' | 'left';
 }
 
 export interface SalesProductItem {

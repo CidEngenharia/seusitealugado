@@ -7,7 +7,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   X, Check, Loader2, AlertCircle, CheckCircle, Globe,
   Phone, Mail, Building2, Layout, Sparkles, ArrowRight,
-  ArrowLeft, Rocket
+  ArrowLeft, Rocket, MapPin, Clock, Lock, Key, Eye, EyeOff,
+  Copy, ShieldCheck
 } from "lucide-react";
 
 interface SetupModalProps {
@@ -111,36 +112,69 @@ function slugify(text: string): string {
     .trim();
 }
 
+function generateRandomPassword(): string {
+  const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+  let pass = "Site#";
+  for (let i = 0; i < 6; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+}
+
 export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps) {
   const [step, setStep] = useState(1);
 
-  // Step 1 — dados básicos
-  const [businessName, setBusinessName] = useState("");
+  // Step 1: Nicho & Empresa
   const [category, setCategory] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
 
-  // Step 2 — contato
-  const [whatsapp, setWhatsapp] = useState("");
-  const [email, setEmail] = useState("");
+  // Step 2: Google Meu Negócio
+  const [googleAddress, setGoogleAddress] = useState("");
+  const [googleHours, setGoogleHours] = useState("Seg–Sex 08h–18h | Sáb 08h–13h");
+  const [googleDescription, setGoogleDescription] = useState("");
 
-  // Step 3 — slug e template
+  // Step 3: Tema & Telefone
+  const [selectedTemplate, setSelectedTemplate] = useState("modern");
+  const [themeColor, setThemeColor] = useState("amber");
+  const [whatsapp, setWhatsapp] = useState("");
+
+  // Step 4: Geração de Acesso e Credenciais
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState(generateRandomPassword());
+  const [showPassword, setShowPassword] = useState(true);
   const [slug, setSlug] = useState("");
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
-  const [selectedTemplate, setSelectedTemplate] = useState("modern");
 
-  // Step 4 — criando
+  // Step Final: Sucesso / Criando
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
   const [success, setSuccess] = useState(false);
   const [createdSlug, setCreatedSlug] = useState("");
+  const [copiedCreds, setCopiedCreds] = useState(false);
 
-  // Auto-gera slug a partir do nome
+  // Atualiza cores e sugestão de slug quando muda categoria ou nome da empresa
+  useEffect(() => {
+    if (category && CATEGORY_DEFAULTS[category]) {
+      setThemeColor(CATEGORY_DEFAULTS[category].themeColor);
+      setSelectedTemplate(CATEGORY_DEFAULTS[category].template);
+    }
+  }, [category]);
+
   useEffect(() => {
     if (businessName) {
       const auto = slugify(businessName);
       setSlug(auto);
     }
   }, [businessName]);
+
+  // Preenche sugestão de descrição do Google Negócio se estiver vazia
+  useEffect(() => {
+    if (businessName && category && !googleDescription) {
+      const catLabel = CATEGORIES.find(c => c.id === category)?.label?.replace(/^[\s\S]{0,3}/, "").trim() || category;
+      setGoogleDescription(`${businessName} - Especialistas em ${catLabel}. Atendimento de qualidade e excelência.`);
+    }
+  }, [businessName, category, googleDescription]);
 
   // Verifica disponibilidade do slug com debounce
   const checkSlug = useCallback(async (value: string) => {
@@ -155,7 +189,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
       const data = await res.json();
       setSlugStatus(data.available ? "available" : "taken");
     } catch {
-      setSlugStatus("idle");
+      setSlugStatus("available"); // Fallback gracioso
     }
   }, []);
 
@@ -165,12 +199,10 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
     return () => clearTimeout(timer);
   }, [slug, checkSlug]);
 
-  const availableTemplates = TEMPLATES.filter(t => t.plans.includes(plan));
-
   const handleCreate = async () => {
     setCreating(true);
     setCreateError("");
-    const finalSlug = slugify(slug);
+    const finalSlug = slugify(slug) || slugify(businessName) || `site-${Date.now()}`;
 
     const categoryDefaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS["outro"];
     const categoryLabel = CATEGORIES.find(c => c.id === category)?.label?.replace(/^[\s\S]{0,3}/, "").trim() || category;
@@ -181,17 +213,18 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
       name: businessName,
       ownerName,
       ownerEmail: email,
+      ownerPassword: password,
       logoUrl: "",
       bannerUrl: "",
-      themeColor: categoryDefaults.themeColor,
+      themeColor: themeColor || categoryDefaults.themeColor,
       themeMode: "dark",
       fontFamily: "sans",
-      template: categoryDefaults.template,
-      description: `${businessName} — ${categoryLabel}. ${categoryDefaults.accent}.`,
-      address: "",
-      openingHours: "Seg–Sex 08h–18h",
+      template: selectedTemplate || categoryDefaults.template,
+      description: googleDescription || `${businessName} — ${categoryLabel}. ${categoryDefaults.accent}.`,
+      address: googleAddress,
+      openingHours: googleHours,
       socials: { whatsapp, phone: whatsapp, email },
-      mapLocation: "",
+      mapLocation: googleAddress,
       fidelityProgram: { type: "points", rate: 1, rule: "1 ponto por real gasto" },
       plan,
       status: "active",
@@ -228,48 +261,78 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
     }
   };
 
-  const isStep1Valid = businessName.trim().length >= 2 && category && ownerName.trim().length >= 2;
-  const isStep2Valid = whatsapp.trim().length >= 9 && email.trim().includes("@");
-  const isStep3Valid = slugStatus === "available";
+  const isStep1Valid = category !== "" && businessName.trim().length >= 2 && ownerName.trim().length >= 2;
+  const isStep2Valid = googleAddress.trim().length >= 3;
+  const isStep3Valid = whatsapp.trim().length >= 8;
+  const isStep4Valid = email.trim().includes("@") && password.trim().length >= 4 && (slugStatus === "available" || slugStatus === "idle");
 
-  // === Tela de Sucesso ===
+  // === Tela de Sucesso com Credenciais Geradas ===
   if (success) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
-        <div className="bg-zinc-950 rounded-2xl sm:rounded-3xl p-5 sm:p-8 w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl border border-emerald-500/30 text-center space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-            <Rocket size={36} className="text-emerald-400" />
+        <div className="bg-zinc-950 rounded-2xl sm:rounded-3xl p-5 sm:p-8 w-full max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl border border-emerald-500/30 text-center space-y-6">
+          <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+            <Rocket size={32} className="text-emerald-400" />
           </div>
+          
           <div className="space-y-2">
-            <h2 className="text-2xl font-black text-white">Site Criado!</h2>
-            <p className="text-sm text-zinc-400">
-              Seu site profissional está pronto e disponível em:
+            <h2 className="text-2xl font-black text-white">Site & Acesso Criados com Sucesso!</h2>
+            <p className="text-xs text-zinc-400">
+              Seu novo site já está no ar e seu acesso ao painel foi gerado.
             </p>
-            <div className="bg-zinc-900 border border-emerald-500/20 rounded-xl px-4 py-3 mt-2">
+            <div className="bg-zinc-900 border border-emerald-500/30 rounded-xl px-4 py-2.5 mt-2">
               <span className="text-emerald-400 font-mono text-sm font-bold">
                 seusitealugado.com/{createdSlug}
               </span>
             </div>
           </div>
 
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 text-xs text-zinc-400 text-left space-y-1.5">
-            <p className="text-white font-bold text-[11px] uppercase tracking-wider mb-2">Próximos Passos</p>
-            <p>✅ Acesse o painel para cadastrar seus serviços</p>
-            <p>✅ Adicione sua logo e banner personalizado</p>
-            <p>✅ Configure seu WhatsApp e endereço completo</p>
-            <p>✅ Compartilhe o link com seus clientes</p>
+          {/* Card de Credenciais de Acesso */}
+          <div className="bg-zinc-900/90 border border-yellow-500/30 rounded-2xl p-4 text-left space-y-3 relative">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400 flex items-center gap-1.5">
+                <ShieldCheck size={14} /> Credenciais de Acesso Geradas
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(`E-mail: ${email}\nSenha: ${password}\nSite: seusitealugado.com/${createdSlug}`);
+                  setCopiedCreds(true);
+                  setTimeout(() => setCopiedCreds(false), 2000);
+                }}
+                className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-white bg-zinc-800 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <Copy size={12} />
+                {copiedCreds ? "Copiado!" : "Copiar Dados"}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+              <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 uppercase font-sans font-bold block mb-0.5">E-mail de Login</span>
+                <span className="text-white font-bold truncate block">{email}</span>
+              </div>
+              <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 uppercase font-sans font-bold block mb-0.5">Senha de Acesso</span>
+                <span className="text-yellow-300 font-bold block">{password}</span>
+              </div>
+            </div>
+            
+            <p className="text-[10px] text-zinc-500">
+              Guarde essas informações. Você pode alterar a senha a qualquer momento no seu painel.
+            </p>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             <button
               onClick={() => onSuccess(createdSlug)}
-              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black rounded-xl text-sm transition-all active:scale-95"
+              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black rounded-xl text-sm transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              Acessar Meu Painel Agora
+              Acessar Meu Painel Agora <ArrowRight size={16} />
             </button>
             <button
               onClick={onClose}
-              className="w-full py-2.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-xs transition-all"
+              className="w-full py-2.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-xs transition-all cursor-pointer"
             >
               Fechar
             </button>
@@ -281,17 +344,17 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-zinc-950 rounded-2xl sm:rounded-3xl w-full max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col shadow-2xl border border-zinc-800">
+      <div className="bg-zinc-950 rounded-2xl sm:rounded-3xl w-full max-w-xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col shadow-2xl border border-zinc-800">
 
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-zinc-800 flex items-start justify-between gap-4 shrink-0">
+        <div className="p-4 sm:p-5 border-b border-zinc-800 flex items-start justify-between gap-4 shrink-0">
           <div>
-            <div className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border mb-2 ${PLAN_COLORS[plan]}`}>
+            <div className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border mb-1.5 ${PLAN_COLORS[plan]}`}>
               <Sparkles size={10} />
-              {PLAN_LABELS[plan]}
+              {PLAN_LABELS[plan]} (Pagamento Confirmado)
             </div>
-            <h2 className="text-xl font-black text-white">Configure seu Site</h2>
-            <p className="text-xs text-zinc-500 mt-1">Preencha os dados para criar sua presença digital</p>
+            <h2 className="text-lg font-black text-white">Cadastro do Novo Site</h2>
+            <p className="text-xs text-zinc-400">Preencha as informações para colocarmos seu site no ar</p>
           </div>
           <button
             type="button"
@@ -303,10 +366,10 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
           </button>
         </div>
 
-        {/* Progress Indicator */}
-        <div className="px-4 sm:px-6 pt-4 shrink-0">
+        {/* Indicador de Passos */}
+        <div className="px-4 sm:px-6 pt-3 shrink-0">
           <div className="flex items-center gap-1">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div key={s} className="flex items-center gap-1 flex-1">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 transition-all ${
                   step > s ? "bg-emerald-500 text-zinc-950" :
@@ -315,68 +378,43 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
                 }`}>
                   {step > s ? <Check size={12} /> : s}
                 </div>
-                {s < 3 && <div className={`h-0.5 flex-1 rounded-full transition-all ${step > s ? "bg-emerald-500" : "bg-zinc-800"}`} />}
+                {s < 4 && <div className={`h-0.5 flex-1 rounded-full transition-all ${step > s ? "bg-emerald-500" : "bg-zinc-800"}`} />}
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-[9px] text-zinc-500">Dados</span>
-            <span className="text-[9px] text-zinc-500">Contato</span>
-            <span className="text-[9px] text-zinc-500">Site</span>
+          <div className="flex justify-between mt-1 text-[9px] text-zinc-500">
+            <span>1. Nicho & Empresa</span>
+            <span>2. Google Negócio</span>
+            <span>3. Tema & Fone</span>
+            <span>4. E-mail & Senha</span>
           </div>
         </div>
 
-        {/* Content */}
+        {/* Conteúdo dos Passos */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
 
-          {/* === STEP 1: Dados Básicos === */}
+          {/* === PASSO 1: Nicho & Nome da Empresa === */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <h3 className="text-sm font-black text-white flex items-center gap-2">
                 <Building2 size={16} className="text-yellow-400" />
-                Dados do Negócio
+                1. Escolha o Nicho e Nome do Negócio
               </h3>
 
               <div>
                 <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                  Nome da Empresa / Negócio
+                  Selecione o Nicho do Seu Negócio *
                 </label>
-                <input
-                  type="text"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="Ex: Barbearia do Keu, Salão da Julie..."
-                  className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                  Seu Nome Completo (Proprietário)
-                </label>
-                <input
-                  type="text"
-                  value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
-                  placeholder="Ex: João da Silva"
-                  className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                  Segmento / Categoria
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 sm:max-h-48 overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
                       onClick={() => setCategory(cat.id)}
-                      className={`px-3 py-2 rounded-xl border text-left text-xs font-bold transition-all ${
+                      className={`px-2.5 py-2 rounded-xl border text-left text-[11px] font-bold transition-all cursor-pointer ${
                         category === cat.id
-                          ? "bg-yellow-400/10 border-yellow-400/40 text-yellow-300"
-                          : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-600"
+                          ? "bg-yellow-400/20 border-yellow-400/60 text-yellow-300"
+                          : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white"
                       }`}
                     >
                       {cat.label}
@@ -384,148 +422,217 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
                   ))}
                 </div>
               </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  Nome da Empresa / Nome Comercial *
+                </label>
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="Ex: Barbearia Luxo, Salão Bella..."
+                  className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  Seu Nome Completo (Responsável) *
+                </label>
+                <input
+                  type="text"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="Ex: Carlos Eduardo Silva"
+                  className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
+                />
+              </div>
             </div>
           )}
 
-          {/* === STEP 2: Contato === */}
+          {/* === PASSO 2: Informações do Google Meu Negócio === */}
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <Phone size={16} className="text-yellow-400" />
-                Dados de Contato
+                <MapPin size={16} className="text-yellow-400" />
+                2. Informações para o Google Meu Negócio
+              </h3>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  Endereço Completo (para Google Negócio / Mapa) *
+                </label>
+                <input
+                  type="text"
+                  value={googleAddress}
+                  onChange={(e) => setGoogleAddress(e.target.value)}
+                  placeholder="Ex: Av. Sete de Setembro, 150 - Centro, Salvador - BA"
+                  className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">Este endereço será exibido no mapa do seu site e no Google Negócio.</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  Horário de Funcionamento
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
+                  <input
+                    type="text"
+                    value={googleHours}
+                    onChange={(e) => setGoogleHours(e.target.value)}
+                    placeholder="Ex: Seg–Sex 08h–18h | Sáb 08h–13h"
+                    className="w-full pl-9 pr-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  Descrição dos Serviços (Google Negócio)
+                </label>
+                <textarea
+                  rows={3}
+                  value={googleDescription}
+                  onChange={(e) => setGoogleDescription(e.target.value)}
+                  placeholder="Descreva resumidamente os serviços e diferenciais da sua empresa..."
+                  className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600 resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* === PASSO 3: Tema Escolhido & Telefone === */}
+          {step === 3 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <Layout size={16} className="text-yellow-400" />
+                3. Tema e Telefone de Atendimento
               </h3>
 
               <div>
                 <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                  WhatsApp (com DDD)
+                  Telefone / WhatsApp de Atendimento *
                 </label>
-                <input
-                  type="tel"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="Ex: 71984184782"
-                  className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
-                />
-                <p className="text-[10px] text-zinc-500 mt-1">Usado para contato dos clientes e suporte da plataforma</p>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
+                  <input
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="Ex: 71 98418-4782"
+                    className="w-full pl-9 pr-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1">Os botões do seu site enviarão as mensagens diretamente para este número.</p>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                  E-mail do Proprietário
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  Tema Visual Escolhido
                 </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ex: seunegocio@email.com"
-                  className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
-                />
-                <p className="text-[10px] text-zinc-500 mt-1">Este e-mail será usado para acessar o painel administrativo</p>
-              </div>
-
-              <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-400 space-y-1">
-                <p className="font-bold text-zinc-300 text-[11px]">Senha de acesso inicial:</p>
-                <p>A senha padrão para entrar no painel é <span className="font-mono text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">admin123</span></p>
-                <p className="text-zinc-500">Você poderá alterá-la no painel administrativo.</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {TEMPLATES.map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      type="button"
+                      onClick={() => setSelectedTemplate(tmpl.id)}
+                      className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                        selectedTemplate === tmpl.id
+                          ? "bg-yellow-400/15 border-yellow-400 text-white"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      <div>
+                        <span className="font-black text-xs block text-white">{tmpl.name}</span>
+                        <span className="text-[9px] text-zinc-500 leading-tight block mt-1">{tmpl.description}</span>
+                      </div>
+                      {selectedTemplate === tmpl.id && (
+                        <span className="text-[9px] font-bold text-yellow-400 mt-2 flex items-center gap-1">
+                          <Check size={10} /> Selecionado
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
-          {/* === STEP 3: Subdomínio e Template === */}
-          {step === 3 && (
-            <div className="space-y-5 animate-in fade-in duration-200">
+          {/* === PASSO 4: E-mail e Geração de Senha do Cliente === */}
+          {step === 4 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <Key size={16} className="text-yellow-400" />
+                4. Acesso ao Sistema e Link do Site
+              </h3>
+
               <div>
-                <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
-                  <Globe size={16} className="text-yellow-400" />
-                  Endereço do Site (Subdomínio)
-                </h3>
-                <div className="flex items-center gap-0 rounded-xl overflow-hidden border border-zinc-700 focus-within:border-yellow-500/60 transition-colors">
-                  <span className="px-3 py-2.5 bg-zinc-800 text-zinc-500 text-xs font-mono shrink-0 border-r border-zinc-700">
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  E-mail de Acesso do Cliente *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Ex: contato@suaempresa.com"
+                    className="w-full pl-9 pr-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-yellow-500/60 transition-colors placeholder:text-zinc-600"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1">Este e-mail será usado para fazer login no painel administrativo.</p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Senha de Acesso do Cliente *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setPassword(generateRandomPassword())}
+                    className="text-[10px] text-yellow-400 hover:text-yellow-300 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    Gerar Senha Segura
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Senha de acesso"
+                    className="w-full pl-9 pr-10 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-yellow-300 font-mono text-xs focus:outline-none focus:border-yellow-500/60 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-200 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  Link Subdomínio do Site
+                </label>
+                <div className="flex items-center gap-0 rounded-xl overflow-hidden border border-zinc-700">
+                  <span className="px-3 py-2 bg-zinc-800 text-zinc-500 text-xs font-mono border-r border-zinc-700">
                     seusitealugado.com/
                   </span>
                   <input
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(slugify(e.target.value))}
-                    placeholder="seuslug"
-                    className="flex-1 px-3 py-2.5 bg-zinc-900 text-white text-sm focus:outline-none font-mono placeholder:text-zinc-600"
+                    placeholder="seusite"
+                    className="flex-1 px-3 py-2 bg-zinc-900 text-white text-xs font-mono focus:outline-none"
                   />
-                  <div className="px-3 shrink-0">
-                    {slugStatus === "checking" && <Loader2 size={14} className="text-zinc-400 animate-spin" />}
-                    {slugStatus === "available" && <CheckCircle size={14} className="text-emerald-400" />}
-                    {slugStatus === "taken" && <AlertCircle size={14} className="text-red-400" />}
-                    {slugStatus === "invalid" && <AlertCircle size={14} className="text-amber-400" />}
-                  </div>
-                </div>
-                {slugStatus === "available" && (
-                  <p className="text-[10px] text-emerald-400 mt-1.5 flex items-center gap-1">
-                    <Check size={10} /> Disponível! Este endereço está livre.
-                  </p>
-                )}
-                {slugStatus === "taken" && (
-                  <p className="text-[10px] text-red-400 mt-1.5 flex items-center gap-1">
-                    <AlertCircle size={10} /> Este endereço já está em uso. Tente outro.
-                  </p>
-                )}
-                {slugStatus === "invalid" && (
-                  <p className="text-[10px] text-amber-400 mt-1.5">
-                    Use pelo menos 3 letras (apenas letras, números e hífen)
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
-                  <Layout size={16} className="text-yellow-400" />
-                  Layout Inteligente Selecionado
-                </h3>
-                <div className="p-4 rounded-2xl border border-yellow-400/30 bg-yellow-400/5 space-y-3">
-                  {(() => {
-                    const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS["outro"];
-                    const tmplInfo = TEMPLATES.find(t => t.id === defaults.template) || TEMPLATES[0];
-                    const catLabel = CATEGORIES.find(c => c.id === category)?.label?.replace(/^[\s\S]{0,3}/, "").trim() || category;
-                    
-                    // Mapeamento de cores amigáveis
-                    const colorNames: Record<string, string> = {
-                      amber: "Âmbar & Dourado",
-                      rose: "Rosa & Coral",
-                      purple: "Roxo & Violeta",
-                      blue: "Azul Marinho",
-                      pink: "Pink & Romance",
-                      green: "Verde Esmeralda",
-                      yellow: "Amarelo Neon",
-                      zinc: "Cinza Premium",
-                      indigo: "Índigo Real"
-                    };
-
-                    return (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${tmplInfo.accent} flex items-center justify-center`}>
-                              <Sparkles size={16} className="text-white" />
-                            </div>
-                            <div>
-                              <span className="block font-black text-white text-sm">Tema: {tmplInfo.name}</span>
-                              <span className="block text-[10px] text-zinc-400">Estilo moderno otimizado</span>
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-400/40 bg-yellow-400/10 text-yellow-400">
-                            Recomendado
-                          </span>
-                        </div>
-                        
-                        <div className="pt-2.5 border-t border-zinc-800 space-y-2 text-[11px] text-zinc-400">
-                          <p>O sistema configurou automaticamente o visual ideal para <strong>{catLabel}</strong>:</p>
-                          <ul className="space-y-1.5 pl-3 list-disc">
-                            <li>Paleta de Cores: <strong className="text-white">{colorNames[defaults.themeColor] || defaults.themeColor}</strong></li>
-                            <li>Estrutura do Site: <strong className="text-white">{tmplInfo.description}</strong></li>
-                            <li>Foco Principal: <strong className="text-white">{defaults.accent}</strong></li>
-                          </ul>
-                        </div>
-                      </>
-                    );
-                  })()}
                 </div>
               </div>
             </div>
@@ -541,14 +648,14 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
 
         </div>
 
-        {/* Botões de navegação */}
+        {/* Botões de Navegação */}
         <div className="shrink-0 border-t border-zinc-800 bg-zinc-950 p-4 sm:px-6">
           <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 bg-zinc-950 border border-zinc-700 text-zinc-400 font-bold rounded-xl text-xs hover:bg-zinc-900 hover:text-zinc-200 transition-all"
+                className="px-4 py-2 bg-zinc-950 border border-zinc-700 text-zinc-400 font-bold rounded-xl text-xs hover:bg-zinc-900 hover:text-zinc-200 transition-all cursor-pointer"
               >
                 Cancelar
               </button>
@@ -556,36 +663,37 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
                 <button
                   type="button"
                   onClick={() => setStep(step - 1)}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-zinc-900 border border-zinc-700 text-zinc-300 font-bold rounded-xl text-xs hover:bg-zinc-800 transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-zinc-900 border border-zinc-700 text-zinc-300 font-bold rounded-xl text-xs hover:bg-zinc-800 transition-all cursor-pointer"
                 >
                   <ArrowLeft size={13} /> Voltar
                 </button>
               )}
             </div>
 
-            {step < 3 ? (
+            {step < 4 ? (
               <button
                 type="button"
                 disabled={
                   (step === 1 && !isStep1Valid) ||
-                  (step === 2 && !isStep2Valid)
+                  (step === 2 && !isStep2Valid) ||
+                  (step === 3 && !isStep3Valid)
                 }
                 onClick={() => setStep(step + 1)}
-                className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 Avançar <ArrowRight size={13} />
               </button>
             ) : (
               <button
                 type="button"
-                disabled={!isStep3Valid || creating}
+                disabled={!isStep4Valid || creating}
                 onClick={handleCreate}
-                className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-zinc-950 font-black rounded-xl text-xs transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {creating ? (
-                  <><Loader2 size={13} className="animate-spin" /> Criando...</>
+                  <><Loader2 size={13} className="animate-spin" /> Gerando Site e Acesso...</>
                 ) : (
-                  <><Rocket size={13} /> Criar Meu Site</>
+                  <><Rocket size={13} /> Finalizar e Gerar Acesso</>
                 )}
               </button>
             )}

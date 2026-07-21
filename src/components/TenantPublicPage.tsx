@@ -62,8 +62,48 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
   }, [tenant.themeMode, tenant.plan]);
 
   useEffect(() => {
-    document.title = `${tenant.name} | SeuSiteAlugado`;
-  }, [tenant.name]);
+    // SEO: título e meta description configurados pelo inquilino
+    const seo = tenant.seoAnalyticsConfig;
+    document.title = seo?.metaTitle || `${tenant.name} | SeuSiteAlugado`;
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (seo?.metaDescription) {
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        (metaDesc as HTMLMetaElement).name = 'description';
+        document.head.appendChild(metaDesc);
+      }
+      (metaDesc as HTMLMetaElement).content = seo.metaDescription;
+    }
+
+    // Analytics: Google Analytics GA4
+    if (seo?.googleAnalyticsId) {
+      const gaId = seo.googleAnalyticsId;
+      if (!document.getElementById('ga-script')) {
+        const script = document.createElement('script');
+        script.id = 'ga-script';
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+        document.head.appendChild(script);
+
+        const inline = document.createElement('script');
+        inline.id = 'ga-inline';
+        inline.innerHTML = `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${gaId}');`;
+        document.head.appendChild(inline);
+      }
+    }
+
+    // Analytics: Facebook Pixel
+    if (seo?.facebookPixelId) {
+      const pixelId = seo.facebookPixelId;
+      if (!document.getElementById('fb-pixel')) {
+        const script = document.createElement('script');
+        script.id = 'fb-pixel';
+        script.innerHTML = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixelId}');fbq('track','PageView');`;
+        document.head.appendChild(script);
+      }
+    }
+  }, [tenant.name, tenant.seoAnalyticsConfig]);
 
   const [activeTab, setActiveTab] = useState<'services' | 'reviews' | 'about' | 'products'>('services');
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -781,6 +821,30 @@ END:VCARD`;
                     const cleanPhone = (tenant.socials?.whatsapp || "(11) 99999-8888").replace(/\D/g, "");
                     const waLink = `https://api.whatsapp.com/send?phone=55${cleanPhone}&text=${message}`;
 
+                    // Configuração de link para o botão de acordo com a opção de pagamento/checkout ativa
+                    let purchaseLink = waLink;
+                    let purchaseLabel = "Falar com Vendedor";
+                    
+                    if (tenant.paymentConfig?.enabled) {
+                      const gateway = tenant.paymentConfig.gateway;
+                      if (gateway === "pix_whatsapp" && tenant.paymentConfig.pixKey) {
+                        const pixMsg = encodeURIComponent(
+                          `Olá! Gostaria de comprar o produto *${product.name}* no valor de *R$ ${product.price.toFixed(2)}*.\n\n*Informações de pagamento Pix:*\nChave Pix: ${tenant.paymentConfig.pixKey}\nBeneficiário: ${tenant.paymentConfig.pixHolderName || tenant.ownerName}`
+                        );
+                        purchaseLink = `https://api.whatsapp.com/send?phone=55${cleanPhone}&text=${pixMsg}`;
+                        purchaseLabel = "Pagar via Pix / WhatsApp";
+                      } else if (gateway === "stripe") {
+                        purchaseLink = `/api/checkout-session?gateway=stripe&productId=${product.id}&tenantSlug=${tenant.slug}`;
+                        purchaseLabel = "Comprar com Stripe";
+                      } else if (gateway === "mercadopago") {
+                        purchaseLink = `/api/checkout-session?gateway=mercadopago&productId=${product.id}&tenantSlug=${tenant.slug}`;
+                        purchaseLabel = "Comprar com Mercado Pago";
+                      } else if (gateway === "pagbank") {
+                        purchaseLink = `/api/checkout-session?gateway=pagbank&productId=${product.id}&tenantSlug=${tenant.slug}`;
+                        purchaseLabel = "Comprar com PagBank";
+                      }
+                    }
+
                     return (
                       <div 
                         key={product.id}
@@ -821,15 +885,15 @@ END:VCARD`;
                           </div>
                           
                           <a 
-                            href={waLink}
-                            target="_blank"
+                            href={purchaseLink}
+                            target={purchaseLink.startsWith("http") ? "_blank" : "_self"}
                             rel="noreferrer"
                             className="px-3.5 py-2 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-500 transition-all duration-100 active:scale-95 shadow-lg shadow-emerald-600/10 shrink-0"
                           >
                             <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                               <path d="M12.031 6.172c-3.202 0-5.805 2.603-5.805 5.806 0 1.041.273 2.059.796 2.964l-.847 3.093 3.164-.83c.875.477 1.86.729 2.865.729 3.203 0 5.854-2.603 5.854-5.806 0-3.203-2.651-5.806-5.854-5.806zm4.186 7.915c-.172-.086-1.02-.504-1.177-.562-.158-.058-.273-.086-.388.087-.116.172-.446.562-.547.677-.101.115-.202.13-.374.043-.172-.086-.729-.268-1.39-.857-.514-.458-.861-1.025-.961-1.198-.101-.172-.011-.266.075-.352.078-.077.172-.202.259-.302.087-.101.115-.172.173-.287.058-.115.029-.216-.014-.302-.043-.087-.389-.936-.533-1.282-.14-.338-.282-.292-.388-.297-.101-.005-.216-.005-.331-.005-.115 0-.302.043-.46.216-.158.173-.604.59-.604 1.439 0 .849.619 1.669.705 1.784.087.115 1.218 1.86 2.951 2.61.412.178.734.284.985.364.415.13.791.112 1.09.067.331-.05 1.02-.417 1.164-.819.144-.403.144-.748.1-.82-.043-.072-.158-.115-.331-.201zM12 .003C5.373.003 0 5.377 0 12c0 2.112.551 4.103 1.516 5.855L.231 22.955a.8.8 0 0 0 .937.938l5.101-1.284A11.9 11.9 0 0 0 12 23.997c6.627 0 12-5.374 12-12s-5.373-11.994-12-11.994zM12 21.997a9.907 9.907 0 0 1-5.116-1.4 1 1 0 0 0-.742-.112l-3.238.815.828-3.029a1 1 0 0 0-.083-.81A9.914 9.914 0 0 1 2.052 12c0-5.485 4.463-9.997 9.948-9.997 5.485 0 10.003 4.512 10.003 9.997s-4.518 9.997-10.003 9.997z"/>
                             </svg>
-                            Falar com Vendedor
+                            {purchaseLabel}
                           </a>
                         </div>
                       </div>
@@ -865,8 +929,18 @@ END:VCARD`;
                 return (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                     {photos.slice(0, 6).map((src: string, i: number) => {
+                      const instagramUser = tenant.socials?.instagram || "";
+                      const instagramLink = instagramUser.startsWith('http') 
+                        ? instagramUser 
+                        : `https://instagram.com/${instagramUser.replace('@', '')}`;
+                      
                       const isCustom = customPhotos.length > 0;
-                      const linkUrl = isCustom ? src : (tenant.socials?.instagram ? (tenant.socials.instagram.startsWith('http') ? tenant.socials.instagram : `https://instagram.com/${tenant.socials.instagram.replace('@', '')}`) : 'https://instagram.com');
+                      // Se for custom, o clique na foto abre o Instagram do inquilino
+                      const linkUrl = isCustom ? instagramLink : src;
+                      
+                      // Se for Base64 (upload local), usamos a string direto, senão passa pelo proxy
+                      const imgSrc = src.startsWith("data:") ? src : getInstagramMediaUrl(src);
+
                       return (
                         <a
                           key={i}
@@ -876,12 +950,11 @@ END:VCARD`;
                           className="aspect-square bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] rounded-xl overflow-hidden relative group shadow-lg cursor-pointer block"
                         >
                           <img
-                            src={getInstagramMediaUrl(src)}
+                            src={imgSrc}
                             alt={`Instagram post ${i + 1}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100 absolute inset-0 z-10"
                             referrerPolicy="no-referrer"
                             onError={(e) => {
-                              // Se der erro de CORS/bloqueio, oculta a imagem quebrada
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
@@ -1223,6 +1296,87 @@ END:VCARD`;
             </div>
           </div>
         </div>
+      )}
+      
+      {tenant.customForm?.enabled && tenant.customForm.fields && tenant.customForm.fields.length > 0 && (
+        <div className={`px-4 py-8 ${themeMode === 'dark' ? 'bg-zinc-900' : 'bg-white'} border-t ${themeMode === 'dark' ? 'border-zinc-800' : 'border-zinc-200'}`}>
+          <div className="max-w-xl mx-auto space-y-4">
+            <h2 className={`text-xl font-extrabold text-center ${themeMode === 'dark' ? 'text-white' : 'text-zinc-900'}`}>
+              {tenant.customForm.title || 'Entre em Contato'}
+            </h2>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formEl = e.currentTarget;
+                const data: Record<string, string> = {};
+                tenant.customForm!.fields.forEach((field) => {
+                  const el = formEl.elements.namedItem(field.id) as HTMLInputElement | HTMLTextAreaElement;
+                  if (el) data[field.label] = el.value;
+                });
+                if (tenant.customForm!.destination === 'whatsapp') {
+                  const msg = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join('\n');
+                  window.open(`https://api.whatsapp.com/send?phone=${tenant.customForm!.destinationWhatsapp}&text=${encodeURIComponent(msg)}`, '_blank');
+                } else {
+                  await fetch(`/api/tenants/${tenant.slug}/submit-form`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data }),
+                  });
+                  alert('Mensagem enviada com sucesso!');
+                }
+                formEl.reset();
+              }}
+              className="space-y-3"
+            >
+              {tenant.customForm.fields.map((field) => (
+                <div key={field.id}>
+                  <label className={`block text-xs mb-1 font-semibold ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                    {field.label}{field.required && <span className="text-rose-500 ml-1">*</span>}
+                  </label>
+                  {field.type === 'textarea' ? (
+                    <textarea
+                      name={field.id}
+                      required={field.required}
+                      placeholder={field.placeholder}
+                      rows={4}
+                      className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
+                    />
+                  ) : (
+                    <input
+                      type={field.type}
+                      name={field.id}
+                      required={field.required}
+                      placeholder={field.placeholder}
+                      className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
+                    />
+                  )}
+                </div>
+              ))}
+              <button
+                type="submit"
+                className={`w-full py-3 rounded-xl text-white font-extrabold text-sm transition-all cursor-pointer ${themeColors.bg} ${themeColors.bgHover}`}
+              >
+                Enviar Mensagem
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* WIDGET FLUTUANTE DE WHATSAPP */}
+      {tenant.whatsappWidgetConfig?.enabled && tenant.whatsappWidgetConfig.phoneNumber && (
+        <a
+          href={`https://api.whatsapp.com/send?phone=${tenant.whatsappWidgetConfig.phoneNumber}&text=${encodeURIComponent(tenant.whatsappWidgetConfig.defaultMessage || 'Olá, vim pelo site!')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm px-4 py-3 rounded-full shadow-2xl transition-all hover:scale-105 cursor-pointer"
+          title="Falar no WhatsApp"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+          WhatsApp
+        </a>
       )}
 
     </div>

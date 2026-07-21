@@ -100,15 +100,14 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
 
   const handleRegister = async () => {
     setError("");
-    if (!newName.trim() || !email.trim() || !password.trim() || !newCategory) {
-      setError("Preencha todos os campos para se cadastrar.");
+    if (!newCategory) {
+      setError("Selecione o segmento do seu negócio.");
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 400));
     setLoading(false);
-    // Por ora: informa que o cadastro é feito pelo admin
-    setError("Novos cadastros são realizados pelo administrador da plataforma. Entre em contato via WhatsApp.");
+    setError("O formulário de cadastro do site é liberado automaticamente após a escolha do plano e pagamento. Selecione o plano ideal abaixo para iniciar.");
   };
 
   return (
@@ -125,12 +124,12 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
 
         {/* Título */}
         <h2 className="text-2xl font-black text-white mb-1 text-center">
-          {isLogin ? "Entrar na conta" : "Criar conta"}
+          {isLogin ? "Entrar na conta" : "Criar nova conta"}
         </h2>
         <p className="text-xs text-zinc-500 text-center mb-6">
           {isLogin
             ? "Acesse o painel do seu site"
-            : "Solicite acesso ao administrador"}
+            : "Escolha seu segmento e contratante"}
         </p>
 
         <div className="space-y-4">
@@ -186,14 +185,14 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
             <div className="space-y-2">
               <label className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                 <Building2 size={11} />
-                Segmento do Negócio
+                Segmento do Negócio (Nicho)
               </label>
               <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
                 {SIGNUP_CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setNewCategory(cat.id)}
+                    onClick={() => { setNewCategory(cat.id); setError(""); }}
                     className={`px-2.5 py-2 rounded-xl border text-left text-[11px] font-medium transition-all cursor-pointer ${
                       newCategory === cat.id
                         ? "bg-yellow-400/15 border-yellow-400/50 text-yellow-300"
@@ -205,8 +204,29 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
                 ))}
               </div>
               {!newCategory && (
-                <p className="text-[10px] text-zinc-500">Selecione o segmento do seu negócio</p>
+                <p className="text-[10px] text-zinc-500">Selecione o nicho do seu negócio para assinar</p>
               )}
+            </div>
+          )}
+
+          {/* Aviso quando em modo cadastro */}
+          {!isLogin && (
+            <div className="bg-yellow-400/10 border border-yellow-500/30 rounded-xl p-3 text-xs text-yellow-200/90 space-y-2">
+              <p className="font-semibold text-yellow-300 text-[11px]">Liberado após contratação do plano:</p>
+              <p className="text-[11px] leading-relaxed text-zinc-300">
+                O formulário completo para cadastro do site (dados da empresa, Google Negócio, tema e telefone) e geração do e-mail/senha de acesso é ativado após a confirmação do pagamento do seu plano.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  const el = document.getElementById("planos");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="w-full py-2 bg-yellow-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-lg text-xs transition-all text-center mt-1"
+              >
+                Ver Planos e Contratar
+              </button>
             </div>
           )}
 
@@ -219,17 +239,15 @@ export default function AuthModal({ tenants, onClose, onLogin }: AuthModalProps)
           )}
 
           {/* Botão principal */}
-          <button
-            onClick={isLogin ? handleLogin : handleRegister}
-            disabled={loading}
-            className="w-full bg-yellow-400 text-black py-3 rounded-xl font-black text-sm hover:bg-yellow-500 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              isLogin ? "Entrar" : "Solicitar Cadastro"
-            )}
-          </button>
+          {isLogin && (
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full bg-yellow-400 text-black py-3 rounded-xl font-black text-sm hover:bg-yellow-500 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : "Entrar"}
+            </button>
+          )}
         </div>
 
         {/* Alternar Login / Cadastro */}

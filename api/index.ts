@@ -104,6 +104,11 @@ async function fetchFullTenant(tenantRow: any) {
     reviews: (reviews || []).map(mapReview),
     productsToSell: (productsToSell || []).map(mapProductToSell),
     instagramPhotos: tenantRow.instagram_photos || [],
+    customForm: tenantRow.custom_form || undefined,
+    paymentConfig: tenantRow.payment_config || undefined,
+    seoAnalyticsConfig: tenantRow.seo_analytics_config || undefined,
+    whatsappWidgetConfig: tenantRow.whatsapp_widget_config || undefined,
+    formSubmissions: tenantRow.form_submissions || [],
   };
 }
 
@@ -132,6 +137,11 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
     status: updatedTenant.status,
     plan_expiration: updatedTenant.planExpiration,
     instagram_photos: updatedTenant.instagramPhotos || [],
+    custom_form: updatedTenant.customForm || null,
+    payment_config: updatedTenant.paymentConfig || null,
+    seo_analytics_config: updatedTenant.seoAnalyticsConfig || null,
+    whatsapp_widget_config: updatedTenant.whatsappWidgetConfig || null,
+    form_submissions: updatedTenant.formSubmissions || [],
   }, { onConflict: "id" });
 
   if (tenantError) throw tenantError;
@@ -255,7 +265,7 @@ app.post("/api/tenants/:slug/bookings", async (req, res) => {
     if (!existingClients || existingClients.length === 0) {
       const { data: serviceRow } = await supabase.from("services").select("name, price").eq("id", newBooking.serviceId).single();
       const servicePrice = Number(serviceRow?.price) || 0;
-      await supabase.from("crm_clients").insert({ id: "cli-" + Date.now(), tenant_id: tenantId, name: newBooking.clientName, phone: newBooking.clientPhone, email: newBooking.clientEmail, pipeline_stage: "lead", notes: `Registrado automaticamente via agendamento.`, points: Math.floor(servicePrice), cashback: Math.floor(servicePrice * 0.05) });
+      await supabase.from("crm_clients").insert({ id: "cli-" + Date.now(), tenant_id: tenantId, name: newBooking.clientName, phone: newBooking.clientPhone, email: newBooking.clientEmail, pipeline_stage: "lead", notes: "Registrado automaticamente via agendamento.", points: Math.floor(servicePrice), cashback: Math.floor(servicePrice * 0.05) });
     }
     res.json({ success: true, booking: newBooking });
   } catch (err: any) {

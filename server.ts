@@ -18,7 +18,9 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+// Limite aumentado para 50MB para suportar imagens Base64 (logo, banner, galeria)
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // ============================================================
 // Supabase Client (service_role — acesso total no backend)
@@ -205,6 +207,11 @@ function assembleTenant(
     reviews: reviews.map(mapReview),
     productsToSell: productsToSell.map(mapProductToSell),
     instagramPhotos: t.instagram_photos || [],
+    customForm: t.custom_form || undefined,
+    paymentConfig: t.payment_config || undefined,
+    seoAnalyticsConfig: t.seo_analytics_config || undefined,
+    whatsappWidgetConfig: t.whatsapp_widget_config || undefined,
+    formSubmissions: t.form_submissions || [],
   };
 }
 
@@ -280,6 +287,11 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
     status: updatedTenant.status,
     plan_expiration: updatedTenant.planExpiration,
     instagram_photos: (updatedTenant as any).instagramPhotos || [],
+    custom_form: updatedTenant.customForm || null,
+    payment_config: updatedTenant.paymentConfig || null,
+    seo_analytics_config: updatedTenant.seoAnalyticsConfig || null,
+    whatsapp_widget_config: updatedTenant.whatsappWidgetConfig || null,
+    form_submissions: updatedTenant.formSubmissions || [],
   }, { onConflict: "id" });
 
   if (tenantError) throw tenantError;
@@ -503,11 +515,15 @@ app.post("/api/tenants", async (req, res) => {
     return;
   }
 
+  const payloadKB = Math.round(Buffer.byteLength(JSON.stringify(updatedTenant)) / 1024);
+  console.log(`[POST /api/tenants] slug=${updatedTenant.slug} | payload=${payloadKB}KB`);
+
   try {
     await saveTenantToSupabase(updatedTenant);
+    console.log(`[POST /api/tenants] ✅ Salvo com sucesso: ${updatedTenant.slug}`);
     res.json({ success: true, tenant: updatedTenant });
   } catch (err: any) {
-    console.error("Erro ao salvar tenant:", err);
+    console.error(`[POST /api/tenants] ❌ Erro ao salvar ${updatedTenant.slug}:`, err);
     res.status(500).json({ error: "Erro ao salvar tenant", details: err.message });
   }
 });
@@ -607,6 +623,43 @@ app.post("/api/tenants/:slug/reviews", async (req, res) => {
   } catch (err: any) {
     console.error("Erro ao adicionar avaliação:", err);
     res.status(500).json({ error: "Erro ao adicionar avaliação", details: err.message });
+  }
+});
+
+// POST /api/tenants/:slug/submit-form — recebe envio do formulário personalizado do site do inquilino
+app.post("/api/tenants/:slug/submit-form", async (req, res) => {
+  try {
+    const slug = req.params.slug.toLowerCase();
+    const { data: tenantRow, error } = await supabase
+      .from("tenants").select("id, form_submissions").ilike("slug", slug).single();
+
+    if (error || !tenantRow) {
+      res.status(404).json({ error: "Tenant não encontrado" });
+      return;
+    }
+
+    const submissionData = req.body;
+    const currentSubmissions = Array.isArray(tenantRow.form_submissions) ? tenantRow.form_submissions : [];
+    
+    const newSubmission = {
+      id: "sub-" + Date.now() + "-" + Math.random().toString(36).substring(2, 11),
+      data: submissionData,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedSubmissions = [newSubmission, ...currentSubmissions];
+
+    const { error: updateError } = await supabase
+      .from("tenants")
+      .update({ form_submissions: updatedSubmissions })
+      .eq("id", tenantRow.id);
+
+    if (updateError) throw updateError;
+
+    res.json({ success: true, submission: newSubmission });
+  } catch (err: any) {
+    console.error("Erro ao enviar formulário:", err);
+    res.status(500).json({ error: "Erro ao enviar formulário", details: err.message });
   }
 });
 
