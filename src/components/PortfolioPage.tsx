@@ -27,7 +27,7 @@ interface PortfolioPageProps {
   onGoBack: () => void;
 }
 
-const ITEMS_PER_PAGE = 4;
+const ITEMS_PER_PAGE = 6;
 
 const CATEGORY_TAGS: Record<string, string> = {
   barbearia: "Barbearia",
