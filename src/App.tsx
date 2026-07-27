@@ -115,6 +115,27 @@ export default function App() {
     };
   }, []);
 
+  // Detectar acesso por domínio personalizado (pago) — roda quando os tenants são carregados
+  useEffect(() => {
+    if (tenants.length === 0) return;
+
+    const hostname = window.location.hostname;
+    // Ignora domínios próprios da plataforma e localhost
+    const platformHosts = ["localhost", "seusitealugado.vercel.app", "127.0.0.1"];
+    if (platformHosts.some(h => hostname === h || hostname.endsWith(".vercel.app"))) return;
+
+    // Busca tenant que possui esse customDomain configurado
+    const tenantByDomain = tenants.find(
+      t => t.customDomain && t.customDomain.toLowerCase() === hostname.toLowerCase()
+    );
+
+    if (tenantByDomain) {
+      // Acesso via domínio pago — carregar site do tenant diretamente
+      setActiveSlug(tenantByDomain.slug);
+      setCurrentView(prev => prev === 'tenant-admin' ? prev : 'tenant-public');
+    }
+  }, [tenants]);
+
   // Salvar sessão ao fazer login
   const handleLogin = (newRole: 'superadmin' | 'tenantadmin', tenantSlug: string | null) => {
     setRole(newRole);
@@ -264,9 +285,10 @@ export default function App() {
       )}
 
       {currentView === 'tenant-public' && activeTenant && (
-        <TenantPublicPage 
+      <TenantPublicPage 
           tenant={activeTenant}
           onRefreshTenant={handleRefreshActiveTenant}
+          isAuthenticated={role !== null}
           onEnterDashboard={() => setCurrentView('tenant-admin')}
           onBackToLanding={() => {
             setCurrentView('landing');

@@ -50,9 +50,10 @@ interface TenantPublicPageProps {
   onRefreshTenant: () => void;
   onEnterDashboard: () => void;
   onBackToLanding: () => void;
+  isAuthenticated?: boolean;
 }
 
-export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashboard, onBackToLanding }: TenantPublicPageProps) {
+export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashboard, onBackToLanding, isAuthenticated = false }: TenantPublicPageProps) {
   const isPremiumThemeEnabled = tenant.plan === 'premium';
   const initialTheme = isPremiumThemeEnabled ? (tenant.themeMode || 'dark') : 'light';
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>(initialTheme);
@@ -127,6 +128,7 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
   const [showDigitalCard, setShowDigitalCard] = useState(false);
   const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [showAccessDenied, setShowAccessDenied] = useState(false);
 
   // Mapping theme colors
   const colorMap: Record<string, { bg: string; text: string; bgHover: string; border: string; accent: string; badge: string; ring: string }> = {
@@ -405,7 +407,13 @@ END:VCARD`;
           </button>
 
           <button 
-            onClick={onEnterDashboard}
+            onClick={() => {
+              if (isAuthenticated) {
+                onEnterDashboard();
+              } else {
+                setShowAccessDenied(true);
+              }
+            }}
             className="flex items-center gap-1.5 bg-neutral-800 text-white font-medium px-2.5 py-1 rounded hover:bg-neutral-700 hover:border-neutral-600 border border-neutral-700 cursor-pointer transition-all text-[11px]"
           >
             <Lock size={11} />
@@ -1491,7 +1499,13 @@ END:VCARD`;
             <div className="pt-4 border-t border-zinc-900 space-y-3">
               <p className="text-[11px] text-zinc-400 font-bold mb-1">Como lojista, você pode destravar e ativar essa função agora:</p>
               <button 
-                onClick={onEnterDashboard}
+                onClick={() => {
+                  if (isAuthenticated) {
+                    onEnterDashboard();
+                  } else {
+                    setShowAccessDenied(true);
+                  }
+                }}
                 className="w-full py-3 bg-indigo-600 text-white font-extrabold rounded-xl cursor-pointer flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-900/10 transition-colors text-xs"
               >
                 ⚡ Ir para o Painel Administrativo do Site
@@ -1517,6 +1531,46 @@ END:VCARD`;
           </svg>
           WhatsApp
         </a>
+      )}
+
+      {/* MODAL DE ACESSO NEGADO */}
+      {showAccessDenied && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowAccessDenied(false)}
+        >
+          <div
+            className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl max-w-sm w-full p-7 text-center space-y-5 animate-fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Ícone de alerta */}
+            <div className="w-14 h-14 mx-auto rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center">
+              <Lock size={26} className="text-rose-400" />
+            </div>
+
+            {/* Título */}
+            <div className="space-y-2">
+              <h2 className="text-lg text-white" style={{ fontWeight: 700 }}>
+                ⚠️ Atenção
+              </h2>
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                Você não tem privilégios para acesso a essa área.
+                <br />
+                <span className="text-zinc-400">
+                  Contate o Administrador do Sistema.
+                </span>
+              </p>
+            </div>
+
+            {/* Botão fechar */}
+            <button
+              onClick={() => setShowAccessDenied(false)}
+              className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm rounded-xl transition-all cursor-pointer"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

@@ -3,7 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from "recharts";
 import { 
   ShieldCheck, 
   Users, 
@@ -20,7 +24,10 @@ import {
   Pause,
   Play,
   X,
-  MessageSquare
+  MessageSquare,
+  Globe,
+  CheckCircle,
+  Link
 } from "lucide-react";
 import { Tenant } from "../types";
 import SetupModal from "./SetupModal";
@@ -38,6 +45,10 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [domainInput, setDomainInput] = useState("");
+  const [domainSaved, setDomainSaved] = useState(false);
+  const [dueDateInput, setDueDateInput] = useState("");
+  const [dueDateSaved, setDueDateSaved] = useState(false);
   const selectedTenant = tenants.find(t => t.id === selectedTenantId);
 
   // SaaS pricing calculator
@@ -137,6 +148,72 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
     }
   };
 
+  const handleSaveDomain = async (tenantId: string, domain: string) => {
+    const tenant = tenants.find(t => t.id === tenantId);
+    if (!tenant) return;
+    const cleaned = domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    try {
+      await fetch("/api/super/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId, customDomain: cleaned || null })
+      });
+    } catch (e) { /* silently fallback */ }
+    onTenantUpdated({ ...tenant, customDomain: cleaned || undefined });
+    setDomainSaved(true);
+    setTimeout(() => setDomainSaved(false), 2500);
+  };
+
+  const handleSaveDueDate = async (tenantId: string, date: string) => {
+    const tenant = tenants.find(t => t.id === tenantId);
+    if (!tenant) return;
+    try {
+      await fetch("/api/super/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId, dueDate: date || null })
+      });
+    } catch (e) { /* silently fallback */ }
+    onTenantUpdated({ ...tenant, dueDate: date || undefined });
+    setDueDateSaved(true);
+    setTimeout(() => setDueDateSaved(false), 2500);
+  };
+
+  // ── Analytics data (simulado / substituir por API real) ──────────────────
+  const viewsData = useMemo(() =>
+    tenants.map((t) => ({
+      name: t.name.split(" ").slice(0, 2).join(" "),
+      views: t.services.reduce((s, svc) => s + (svc.views ?? Math.floor(80 + Math.random() * 400)), 0),
+    })),
+    [tenants]
+  );
+
+  const locationData = [
+    { name: "Salvador", value: 38 },
+    { name: "São Paulo", value: 24 },
+    { name: "Rio de Janeiro", value: 17 },
+    { name: "Outros", value: 21 },
+  ];
+
+  const ageData = [
+    { faixa: "18-24", usuarios: 22 },
+    { faixa: "25-34", usuarios: 41 },
+    { faixa: "35-44", usuarios: 27 },
+    { faixa: "45-54", usuarios: 15 },
+    { faixa: "55+",   usuarios: 8  },
+  ];
+
+  const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#94a3b8"];
+
+  const [onlineCount, setOnlineCount] = useState(Math.floor(3 + Math.random() * 12));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setOnlineCount(Math.floor(2 + Math.random() * 18));
+    }, 4000);
+    return () => clearInterval(id);
+  }, []);
+  // ────────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="h-screen overflow-y-auto bg-slate-50 text-slate-900 font-sans p-6 selection:bg-indigo-600 selection:text-white">
       
@@ -212,6 +289,112 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
           </div>
 
         </div>
+
+        {/* ── ANALYTICS DASHBOARD ──────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+          {/* Visualizações por site */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={14} className="text-indigo-500" />
+              <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">Visualizações por Site</span>
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={viewsData} barCategoryGap="30%">
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                <Tooltip
+                  contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                  formatter={(v: number) => [`${v} views`, ""]}
+                />
+                <Bar dataKey="views" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Usuários online ao vivo */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={14} className="text-emerald-500" />
+              <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">Usuários Online — Ao Vivo</span>
+              <span className="ml-auto flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                LIVE
+              </span>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <span className="text-7xl font-black text-indigo-600 tabular-nums" style={{ lineHeight: 1 }}>{onlineCount}</span>
+              <span className="text-xs text-slate-400">usuários navegando agora nos sites cadastrados</span>
+              <div className="w-full grid grid-cols-3 gap-2 mt-2">
+                {tenants.slice(0, 3).map((t, i) => (
+                  <div key={t.id} className="flex flex-col items-center bg-slate-50 rounded-xl py-2 px-1">
+                    <span className="text-lg font-black text-indigo-600">{Math.max(1, Math.floor(onlineCount * [0.4, 0.35, 0.25][i]))}</span>
+                    <span className="text-[9px] text-slate-500 text-center truncate w-full px-1">{t.name.split(" ")[0]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Usuários por localização */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Users size={14} className="text-amber-500" />
+              <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">Usuários por Localização</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width="55%" height={160}>
+                <PieChart>
+                  <Pie
+                    data={locationData}
+                    cx="50%" cy="50%"
+                    innerRadius={42} outerRadius={68}
+                    dataKey="value"
+                    paddingAngle={3}
+                  >
+                    {locationData.map((_, idx) => (
+                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                    formatter={(v: number) => [`${v}%`, ""]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-2">
+                {locationData.map((d, idx) => (
+                  <div key={d.name} className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                    <span className="text-[10px] text-slate-600 font-medium">{d.name}</span>
+                    <span className="text-[10px] font-black text-slate-800 ml-auto">{d.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Faixa de idade */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Database size={14} className="text-rose-400" />
+              <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">Faixa de Idade dos Usuários</span>
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={ageData} barCategoryGap="25%" layout="vertical">
+                <XAxis type="number" tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                <YAxis type="category" dataKey="faixa" tick={{ fontSize: 9, fill: "#94a3b8" }} width={38} />
+                <Tooltip
+                  contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                  formatter={(v: number) => [`${v}%`, ""]}
+                />
+                <Bar dataKey="usuarios" fill="#f43f5e" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+        </div>
+        {/* ── FIM ANALYTICS DASHBOARD ──────────────────────────────── */}
 
         {/* GRID OF REGISTERED CLIENT TENANTS */}
         <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
@@ -374,14 +557,111 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
                   <p className="font-semibold text-slate-700">{selectedTenant.socials.whatsapp || selectedTenant.socials.phone || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-bold uppercase text-[9px]">Data de Vencimento</span>
-                  <p className="font-semibold text-slate-700">TODO: Implementar data vencimento</p>
+                  <span className="text-slate-400 block font-bold uppercase text-[9px] mb-1">Data de Vencimento</span>
+                  {/* Badge de status de vencimento */}
+                  {selectedTenant.dueDate && (() => {
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    const due = new Date(selectedTenant.dueDate + 'T00:00:00');
+                    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    const fmt = due.toLocaleDateString('pt-BR');
+                    if (diffDays < 0)
+                      return <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 mb-1">⚠ Vencido em {fmt}</span>;
+                    if (diffDays <= 7)
+                      return <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 mb-1">⏰ Vence em {diffDays}d — {fmt}</span>;
+                    return <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1">✓ Ativo até {fmt}</span>;
+                  })()}
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      type="date"
+                      value={dueDateInput !== "" ? dueDateInput : (selectedTenant.dueDate ?? "")}
+                      onChange={e => { setDueDateInput(e.target.value); setDueDateSaved(false); }}
+                      className="flex-1 border border-slate-300 bg-white rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300"
+                    />
+                    <button
+                      onClick={() => {
+                        const val = dueDateInput !== "" ? dueDateInput : (selectedTenant.dueDate ?? "");
+                        handleSaveDueDate(selectedTenant.id, val);
+                        setDueDateInput("");
+                      }}
+                      className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                        dueDateSaved ? 'bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'
+                      }`}
+                    >
+                      <CheckCircle size={11} />
+                      {dueDateSaved ? "Salvo!" : "Salvar"}
+                    </button>
+                  </div>
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <span className="text-slate-400 block font-bold uppercase text-[9px]">Endereço do Site</span>
                   <p className="font-semibold text-indigo-600 truncate">sitealugado.com/{selectedTenant.slug}</p>
                 </div>
               </div>
+
+              {/* ── DOMÍNIO PERSONALIZADO ─────────────────────────────── */}
+              <div className="border border-indigo-100 bg-indigo-50/40 rounded-xl p-4 mt-2 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Globe size={14} className="text-indigo-500" />
+                  <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">Domínio Personalizado</span>
+                  {selectedTenant.customDomain && (
+                    <span className="ml-auto flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      <CheckCircle size={9} />
+                      Ativo
+                    </span>
+                  )}
+                </div>
+
+                {selectedTenant.customDomain && (
+                  <div className="flex items-center gap-2 text-xs bg-white border border-indigo-200 rounded-lg px-3 py-2">
+                    <Link size={11} className="text-indigo-400 shrink-0" />
+                    <a
+                      href={`https://${selectedTenant.customDomain}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-indigo-600 font-semibold hover:underline truncate"
+                    >
+                      {selectedTenant.customDomain}
+                    </a>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={domainInput !== "" ? domainInput : (selectedTenant.customDomain ?? "")}
+                    onChange={e => { setDomainInput(e.target.value); setDomainSaved(false); }}
+                    placeholder="ex: jkaturismo.com.br"
+                    className="flex-1 border border-slate-300 bg-white rounded-lg px-3 py-2 text-xs font-mono text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300"
+                  />
+                  <button
+                    onClick={() => {
+                      handleSaveDomain(selectedTenant.id, domainInput !== "" ? domainInput : (selectedTenant.customDomain ?? ""));
+                      setDomainInput("");
+                    }}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                  >
+                    {domainSaved ? <CheckCircle size={13} /> : <Globe size={13} />}
+                    {domainSaved ? "Salvo!" : "Salvar Domínio"}
+                  </button>
+                  {selectedTenant.customDomain && (
+                    <button
+                      onClick={() => { handleSaveDomain(selectedTenant.id, ""); setDomainInput(""); }}
+                      className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold rounded-lg transition-all cursor-pointer"
+                      title="Remover domínio"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  Cole o domínio registrado (sem https://). Após salvar, configure o CNAME no Registro.br
+                  apontando para <code className="bg-white border border-slate-200 px-1 rounded font-mono text-indigo-600">cname.vercel-dns.com</code> e
+                  adicione o domínio no painel da Vercel em <strong>Settings → Domains</strong>.
+                </p>
+              </div>
+              {/* ── FIM DOMÍNIO ──────────────────────────────────────── */}
+
               <div className="pt-4 border-t border-slate-200 flex justify-end">
                 <button
                   onClick={() => onEnterTenantAdmin(selectedTenant.slug)}

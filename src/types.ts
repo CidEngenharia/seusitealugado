@@ -117,6 +117,8 @@ export interface Tenant {
   description: string;
   address: string;
   openingHours: string;
+  customDomain?: string; // ex: "jkaturismo.com.br" — domínio pago configurado pelo admin
+  dueDate?: string;      // ex: "2025-08-31" — data de vencimento da assinatura (YYYY-MM-DD)
   socials: {
     whatsapp: string;
     instagram: string;
