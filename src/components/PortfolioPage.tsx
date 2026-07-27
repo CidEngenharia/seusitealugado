@@ -102,34 +102,45 @@ const SitePreviewCard: React.FC<{
     >
       {/* Preview Banner */}
       <div
-        className={`relative h-52 bg-gradient-to-br ${theme.bg} flex items-center justify-center overflow-hidden cursor-pointer`}
+        className="relative h-52 flex items-center justify-center overflow-hidden cursor-pointer bg-zinc-950"
         onClick={() => onSelectTenant(tenant.slug)}
       >
+        {/* Banner image as background */}
+        {tenant.bannerUrl && (
+          <img 
+            src={tenant.bannerUrl} 
+            alt="Banner background" 
+            className="absolute inset-0 w-full h-full object-cover opacity-50 filter blur-[0.5px] transition-transform duration-500 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent"></div>
+
         {/* Simulated browser bar */}
-        <div className="absolute top-0 left-0 right-0 h-8 bg-zinc-950/70 backdrop-blur-sm flex items-center px-3 gap-1.5 z-10">
+        <div className="absolute top-0 left-0 right-0 h-8 bg-zinc-950/80 backdrop-blur-sm flex items-center px-3 gap-1.5 z-10 border-b border-white/5">
           <span className="w-2 h-2 rounded-full bg-red-500/70"></span>
           <span className="w-2 h-2 rounded-full bg-yellow-500/70"></span>
           <span className="w-2 h-2 rounded-full bg-emerald-500/70"></span>
-          <span className="ml-2 flex-1 bg-zinc-800/60 rounded text-[9px] text-zinc-500 px-2 py-0.5 font-mono truncate">
-            seusitealugado.com/{tenant.slug}
+          <span className="ml-2 flex-1 bg-zinc-800/40 rounded text-[9px] text-zinc-400 px-2 py-0.5 font-mono truncate">
+            {(typeof window !== "undefined" ? window.location.host : "seusitealugado.vercel.app") + "/" + tenant.slug}
           </span>
           <span className={`text-[9px] font-mono font-bold ${theme.text}`}>
             /{tenant.slug}
           </span>
         </div>
 
-        {/* Logo/Avatar area */}
-        <div className="flex flex-col items-center gap-3 mt-4">
+        {/* Logo/Avatar area overlayed over background banner */}
+        <div className="flex flex-col items-center gap-2 mt-6 z-10">
           {tenant.logoUrl ? (
             <img
               src={tenant.logoUrl}
               alt={tenant.name}
-              className="w-20 h-20 rounded-full object-cover border-2 border-white/15 shadow-2xl"
+              className="w-16 h-16 rounded-full object-cover border-[1px] border-white/40 shadow-2xl transition-transform duration-300 group-hover:scale-105"
               referrerPolicy="no-referrer"
             />
           ) : (
             <div
-              className={`w-20 h-20 rounded-full bg-gradient-to-br ${theme.bg} border ${theme.border} flex items-center justify-center text-3xl shadow-2xl`}
+              className={`w-16 h-16 rounded-full bg-gradient-to-br ${theme.bg} border ${theme.border} flex items-center justify-center text-2xl shadow-2xl`}
             >
               🏪
             </div>
@@ -181,7 +192,7 @@ const SitePreviewCard: React.FC<{
         </div>
 
         {/* Hover overlay */}
-        <div className="absolute inset-0 bg-indigo-600/0 group-hover:bg-indigo-600/10 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+        <div className="absolute inset-0 z-20 bg-indigo-600/0 group-hover:bg-indigo-600/10 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
           <span className="bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
             <ExternalLink size={11} />
             Ver site

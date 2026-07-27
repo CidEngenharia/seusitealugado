@@ -48,6 +48,7 @@ import {
   Radar,
   FileText,
   CreditCard,
+  CheckCircle,
 } from "lucide-react";
 import MarketRadar from "./market-radar/MarketRadar";
 import {
@@ -143,6 +144,7 @@ export default function TenantAdminDashboard({
 }: TenantAdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<
     | "overview"
+    | "services"
     | "agenda"
     | "crm"
     | "finance"
@@ -210,6 +212,8 @@ export default function TenantAdminDashboard({
   const [newSvcDuration, setNewSvcDuration] = useState(30);
   const [newSvcDesc, setNewSvcDesc] = useState("");
   const [newSvcImg, setNewSvcImg] = useState("");
+  const [newSvcPriceOnRequest, setNewSvcPriceOnRequest] = useState(false);
+  const [isCompressingSvcImg, setIsCompressingSvcImg] = useState(false);
 
   const [showAddClient, setShowAddClient] = useState(false);
   const [newCliName, setNewCliName] = useState("");
@@ -390,10 +394,37 @@ export default function TenantAdminDashboard({
     setEditingService(service);
     setNewSvcName(service.name);
     setNewSvcPrice(service.price);
+    setNewSvcPriceOnRequest(!!service.priceOnRequest);
     setNewSvcDuration(service.duration);
     setNewSvcDesc(service.description);
     setNewSvcImg(service.imageUrl);
     setShowAddService(true);
+  };
+
+  const resetServiceForm = () => {
+    setShowAddService(false);
+    setEditingService(null);
+    setNewSvcName("");
+    setNewSvcDesc("");
+    setNewSvcPrice(30);
+    setNewSvcDuration(30);
+    setNewSvcImg("");
+    setNewSvcPriceOnRequest(false);
+  };
+
+  const handleServiceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingSvcImg(true);
+      const compressedBase64 = await compressImage(file);
+      setNewSvcImg(compressedBase64);
+    } catch (err) {
+      console.error("Erro ao comprimir imagem do serviço:", err);
+      alert("Erro ao processar imagem. Tente outro formato.");
+    } finally {
+      setIsCompressingSvcImg(false);
+    }
   };
   const [newProdName, setNewProdName] = useState("");
   const [newProdCategory, setNewProdCategory] = useState("Cremes");
@@ -684,11 +715,13 @@ export default function TenantAdminDashboard({
   // Add a custom service
   const handleAddServiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSvcName || !newSvcPrice) return;
-    const newSvc: Service = {
-      id: "srv-" + Date.now(),
+    if (!newSvcName || (!newSvcPriceOnRequest && !newSvcPrice)) return;
+
+    const servicePayload: Service = {
+      id: editingService?.id || "srv-" + Date.now(),
       name: newSvcName,
-      price: Number(newSvcPrice),
+      price: newSvcPriceOnRequest ? 0 : Number(newSvcPrice),
+      priceOnRequest: newSvcPriceOnRequest,
       duration: Number(newSvcDuration),
       description: newSvcDesc,
       imageUrl:
@@ -696,14 +729,14 @@ export default function TenantAdminDashboard({
         "https://images.unsplash.com/photo-1541599540903-216a46ca1bf0?w=150",
     };
 
-    const updated = {
-      ...tenant,
-      services: [...tenant.services, newSvc],
-    };
-    saveTenantChanges(updated);
-    setShowAddService(false);
-    setNewSvcName("");
-    setNewSvcDesc("");
+    const updatedServices = editingService
+      ? tenant.services.map((s) =>
+          s.id === editingService.id ? servicePayload : s,
+        )
+      : [...tenant.services, servicePayload];
+
+    saveTenantChanges({ ...tenant, services: updatedServices });
+    resetServiceForm();
   };
 
   // Delete a service
@@ -1023,9 +1056,18 @@ export default function TenantAdminDashboard({
 
   const handleSaveSiteSettings = async () => {
     setIsSavingSiteSettings(true);
+    // Salva o rascunho completo (identidade visual, dados gerais, redes sociais, galeria e quem somos)
     await saveTenantChanges(settingsDraft);
+    // Salva também SEO e Analytics de forma unificada
+    const seoAnalyticsConfig: SeoAnalyticsConfig = {
+      facebookPixelId: seoFbPixel,
+      googleAnalyticsId: seoGaId,
+      metaTitle: seoMetaTitle,
+      metaDescription: seoMetaDesc,
+    };
+    await saveTenantChanges({ ...settingsDraft, seoAnalyticsConfig });
     setIsSavingSiteSettings(false);
-    alert("Configurações do site salvas com sucesso!");
+    alert("Todas as configurações foram salvas com sucesso!");
   };
 
   // Calc quick stats for current business
@@ -1074,10 +1116,10 @@ export default function TenantAdminDashboard({
   return (
     <div
       id="tenant-admin-system"
-      className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-600 selection:text-white"
+      className="h-screen overflow-hidden bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-600 selection:text-white"
     >
       {/* TOP HEADER */}
-      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm z-40">
+      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm z-40 shrink-0">
         <div className="flex items-center gap-3">
           <LogoSeusiteAlugado size="sm" theme="light" showSubtitle={false} />
           <div className="h-6 w-px bg-slate-200"></div>
@@ -1108,15 +1150,25 @@ export default function TenantAdminDashboard({
       </header>
 
       {/* BODY WITH SIDEBAR AND MAIN AREA */}
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         {/* LEFTHAND NAVIGATION BAR */}
-        <aside className="w-full md:w-64 bg-white md:border-r border-slate-200 p-5 shrink-0 flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible shadow-sm z-30">
+        <aside className="w-full md:w-64 bg-white md:border-r border-slate-200 p-5 shrink-0 flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto shadow-sm z-30">
           <button
             onClick={() => setActiveTab("overview")}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${activeTab === "overview" ? "bg-indigo-50 text-indigo-700 border border-indigo-100/50 font-bold shadow-inner" : "text-slate-650 hover:bg-slate-50 hover:text-indigo-600"}`}
           >
             <LayoutDashboard size={14} />
             <span>Dashboard Principal</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("services")}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${activeTab === "services" ? "bg-indigo-50 text-indigo-700 border border-indigo-100/50 font-bold shadow-inner" : "text-slate-650 hover:bg-slate-50 hover:text-indigo-600"}`}
+          >
+            <div className="flex items-center gap-3">
+              <Sliders size={14} />
+              <span>Serviços Prestados</span>
+            </div>
           </button>
 
           <button
@@ -1307,6 +1359,208 @@ export default function TenantAdminDashboard({
                 </div>
               </div>
             )}
+
+          {/* TAB: SERVICES PRESTADOS */}
+          {activeTab === "services" && (
+            <div className="space-y-6">
+              <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-extrabold text-slate-800">
+                      Serviços Disponíveis / Oferecidos
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Crie, edite ou remova os serviços oferecidos no seu site público para os seus clientes.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddService(true)}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-full cursor-pointer flex items-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <Plus size={14} />
+                    <span>Cadastrar Novo Serviço</span>
+                  </button>
+                </div>
+
+                {showAddService && (
+                  <form
+                    onSubmit={handleAddServiceSubmit}
+                    className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4 text-xs"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-slate-500 font-bold mb-1 col-span-1">
+                          Nome do Serviço *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newSvcName}
+                          onChange={(e) => setNewSvcName(e.target.value)}
+                          placeholder="Ex: Corte Artístico"
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-500 font-bold mb-1 col-span-1">
+                          Preço Cobrado (R$) *
+                        </label>
+                        <input
+                          type="number"
+                          required={!newSvcPriceOnRequest}
+                          disabled={newSvcPriceOnRequest}
+                          value={newSvcPriceOnRequest ? "" : newSvcPrice}
+                          onChange={(e) =>
+                            setNewSvcPrice(Number(e.target.value))
+                          }
+                          placeholder={newSvcPriceOnRequest ? "Sob consulta" : "Ex: 45"}
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium disabled:bg-slate-100 disabled:text-slate-400"
+                        />
+                        <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newSvcPriceOnRequest}
+                            onChange={(e) => setNewSvcPriceOnRequest(e.target.checked)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-[11px] text-slate-600 font-semibold">Sob consulta</span>
+                        </label>
+                      </div>
+                      <div>
+                        <label className="block text-slate-500 font-bold mb-1 col-span-1">
+                          Duração Estimada (Minutos)
+                        </label>
+                        <input
+                          type="number"
+                          value={newSvcDuration}
+                          onChange={(e) =>
+                            setNewSvcDuration(Number(e.target.value))
+                          }
+                          placeholder="Ex: 30"
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 font-bold mb-1">
+                        Descrição Curta *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newSvcDesc}
+                        onChange={(e) => setNewSvcDesc(e.target.value)}
+                        placeholder="Quais detalhes o cliente verá ao fechar o agendamento?"
+                        className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
+                        <label className="block text-slate-500 font-bold">
+                          Imagem do Serviço (Opcional)
+                        </label>
+                        {isCompressingSvcImg && (
+                          <span className="text-[10px] text-indigo-600 font-bold animate-pulse">
+                            ⚡ Comprimindo imagem...
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleServiceImageUpload}
+                        className="w-full text-[11px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                      />
+                      {newSvcImg && (
+                        <div className="mt-2 flex items-center gap-3">
+                          <div className="w-16 h-16 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0">
+                            <img
+                              src={newSvcImg}
+                              alt="Preview do serviço"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setNewSvcImg("")}
+                            className="text-[10px] text-red-600 font-bold underline cursor-pointer"
+                          >
+                            Remover imagem
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        className="px-4.5 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow"
+                      >
+                        {editingService ? "Atualizar Serviço" : "Gravar Serviço"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetServiceForm}
+                        className="px-4.5 py-2.5 bg-slate-205 text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-100 transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tenant.services.length === 0 ? (
+                    <div className="col-span-2 text-center p-6 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      Nenhum serviço cadastrado ainda. Clique no botão acima para adicionar seu primeiro serviço!
+                    </div>
+                  ) : (
+                    tenant.services.map((svc) => (
+                      <div
+                        key={svc.id}
+                        className="p-4 bg-white rounded-xl flex items-center justify-between border border-slate-200 hover:border-indigo-200 transition-all shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={svc.imageUrl}
+                            className="w-12 h-12 object-cover rounded-lg border border-slate-100"
+                            alt=""
+                          />
+                          <div>
+                            <h4 className="font-extrabold text-xs text-slate-800">
+                              {svc.name}
+                            </h4>
+                            <span className="text-[11px] text-indigo-600 block font-black">
+                              {svc.priceOnRequest
+                                ? "Sob consulta"
+                                : `R$ ${svc.price.toFixed(2)}`}{" "}
+                              • {svc.duration} mins
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => startEditingService(svc)}
+                            className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
+                            title="Editar serviço"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteService(svc.id)}
+                            className="p-2 text-red-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                            title="Deletar serviço"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* TAB: OVERVIEW */}
           {activeTab === "overview" && (
@@ -1674,156 +1928,6 @@ export default function TenantAdminDashboard({
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* LIST OF SERVICES MANAGEMENT */}
-              <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <h3 className="text-sm font-extrabold text-slate-800">
-                    Serviços Oferecidos no Mini-site
-                  </h3>
-                  <button
-                    onClick={() => setShowAddService(true)}
-                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-full cursor-pointer flex items-center gap-1.5 transition-colors shadow-sm"
-                  >
-                    <Plus size={14} />
-                    <span>Cadastrar Novo Serviço</span>
-                  </button>
-                </div>
-
-                {showAddService && (
-                  <form
-                    onSubmit={handleAddServiceSubmit}
-                    className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4 text-xs"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-slate-500 font-bold mb-1 col-span-1">
-                          Nome do Serviço *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={newSvcName}
-                          onChange={(e) => setNewSvcName(e.target.value)}
-                          placeholder="Ex: Corte Artístico"
-                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-slate-500 font-bold mb-1 col-span-1">
-                          Preço Cobrado (R$) *
-                        </label>
-                        <input
-                          type="number"
-                          required
-                          value={newSvcPrice}
-                          onChange={(e) =>
-                            setNewSvcPrice(Number(e.target.value))
-                          }
-                          placeholder="Ex: 45"
-                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-slate-500 font-bold mb-1 col-span-1">
-                          Duração Estimada (Minutos)
-                        </label>
-                        <input
-                          type="number"
-                          value={newSvcDuration}
-                          onChange={(e) =>
-                            setNewSvcDuration(Number(e.target.value))
-                          }
-                          placeholder="Ex: 30"
-                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-slate-500 font-bold mb-1">
-                        Descrição Curta *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={newSvcDesc}
-                        onChange={(e) => setNewSvcDesc(e.target.value)}
-                        placeholder="Quais detalhes o cliente verá ao fechar o agendamento?"
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-500 font-bold mb-1">
-                        Imagem Temática URL (Opcional)
-                      </label>
-                      <input
-                        type="text"
-                        value={newSvcImg}
-                        onChange={(e) => setNewSvcImg(e.target.value)}
-                        placeholder="https://images.unsplash.com/..."
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        className="px-4.5 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow"
-                      >
-                        Gravar Serviço
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddService(false)}
-                        className="px-4.5 py-2.5 bg-slate-205 text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-100 transition-all"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {tenant.services.map((svc) => (
-                    <div
-                      key={svc.id}
-                      className="p-4 bg-white rounded-xl flex items-center justify-between border border-slate-200 hover:border-indigo-200 transition-all shadow-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={svc.imageUrl}
-                          className="w-12 h-12 object-cover rounded-lg border border-slate-100"
-                          alt=""
-                        />
-                        <div>
-                          <h4 className="font-extrabold text-xs text-slate-800">
-                            {svc.name}
-                          </h4>
-                          <span className="text-[11px] text-indigo-600 block font-black">
-                            R$ {svc.price.toFixed(2)} • {svc.duration} mins
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => startEditingService(svc)}
-                          className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
-                          title="Editar serviço"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteService(svc.id)}
-                          className="p-2 text-red-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                          title="Deletar serviço"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
@@ -4169,6 +4273,50 @@ export default function TenantAdminDashboard({
                     </div>
                   </div>
 
+                  {/* Campo de Descrição "Quem Somos" com ações de criar, editar e excluir */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-slate-700 font-bold text-xs">
+                        Descrição do Site ("Quem Somos")
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {settingsDraft.description ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("Tem certeza que deseja excluir o texto 'Quem Somos'?")) {
+                                setSettingsDraft((current) => ({
+                                  ...current,
+                                  description: "",
+                                }));
+                              }
+                            }}
+                            className="text-rose-600 hover:text-rose-700 text-[11px] font-bold cursor-pointer transition-colors flex items-center gap-1"
+                          >
+                            <Trash2 size={12} /> Excluir Texto
+                          </button>
+                        ) : (
+                          <span className="text-amber-600 text-[10px] font-semibold">Sem texto preenchido</span>
+                        )}
+                      </div>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={settingsDraft.description || ""}
+                      onChange={(e) =>
+                        setSettingsDraft((current) => ({
+                          ...current,
+                          description: e.target.value,
+                        }))
+                      }
+                      placeholder="Escreva ou edite aqui a apresentação 'Quem Somos' do seu negócio..."
+                      className="w-full p-3 bg-white border border-slate-200 text-slate-800 rounded-lg text-xs focus:outline-none focus:border-indigo-500 shadow-inner"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Este texto é exibido no topo da página principal do seu site na seção "Quem Somos".
+                    </p>
+                  </div>
+
                   <div>
                     <label className="block text-slate-500 font-bold mb-1">
                       Endereço Físico
@@ -4297,32 +4445,35 @@ export default function TenantAdminDashboard({
                         />
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!socialLink.trim()) {
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!socialLink.trim()) {
+                              alert(
+                                "Preencha o link da rede social antes de adicionar.",
+                              );
+                              return;
+                            }
+                            // Save in socials object
+                            const updatedSocials = {
+                              ...settingsDraft.socials,
+                              [socialPlatform]: socialLink,
+                            };
+                            setSettingsDraft((current) => ({
+                              ...current,
+                              socials: updatedSocials,
+                            }));
                             alert(
-                              "Preencha o link da rede social antes de adicionar.",
+                              `Rede social ${socialPlatform} adicionada! Lembre-se de clicar em 'Salvar Configurações' no final da página.`,
                             );
-                            return;
-                          }
-                          // Save in socials object
-                          const updatedSocials = {
-                            ...settingsDraft.socials,
-                            [socialPlatform]: socialLink,
-                          };
-                          setSettingsDraft((current) => ({
-                            ...current,
-                            socials: updatedSocials,
-                          }));
-                          alert(
-                            `Rede social ${socialPlatform} cadastrada com sucesso!`,
-                          );
-                        }}
-                        className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded border border-emerald-500 cursor-pointer transition-colors px-4 flex items-center justify-center gap-1"
-                      >
-                        ✓ Cadastrar Rede
-                      </button>
+                          }}
+                          className="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center cursor-pointer transition-all shadow-md active:scale-95 border border-emerald-400 shrink-0"
+                          title="Confirmar cadastro da rede social"
+                        >
+                          <Check size={20} className="stroke-[3]" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Array of active social links */}
@@ -4429,14 +4580,10 @@ export default function TenantAdminDashboard({
                     />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSaveSeoAnalytics}
-                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-all"
-                >
-                  <Save size={12} />
-                  Salvar SEO e Analytics
-                </button>
+                <div className="flex items-center gap-2 text-[10px] text-slate-400 bg-slate-50 border border-slate-100 px-3 py-2 rounded-lg">
+                  <CheckCircle size={13} className="text-emerald-500 shrink-0" />
+                  Campos salvos automaticamente ao clicar em "Salvar Configurações" abaixo
+                </div>
               </div>
 
               {/* INSTAGRAM GALLERY PHOTOS - PREMIUM ONLY */}

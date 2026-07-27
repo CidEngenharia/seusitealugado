@@ -23,6 +23,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { Tenant } from "../types";
+import SetupModal from "./SetupModal";
 
 interface SuperAdminPanelProps {
   tenants: Tenant[];
@@ -36,6 +37,7 @@ interface SuperAdminPanelProps {
 export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnterTenantAdmin, onTenantUpdated, onTenantDeleted }: SuperAdminPanelProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const selectedTenant = tenants.find(t => t.id === selectedTenantId);
 
   // SaaS pricing calculator
@@ -136,7 +138,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-6 selection:bg-indigo-600 selection:text-white">
+    <div className="h-screen overflow-y-auto bg-slate-50 text-slate-900 font-sans p-6 selection:bg-indigo-600 selection:text-white">
       
       {/* HEADER CONTROL */}
       <div className="max-w-6xl mx-auto flex items-center justify-between mb-8 border-b border-slate-200 pb-4">
@@ -156,9 +158,19 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
       <div className="max-w-6xl mx-auto space-y-8">
         
         {/* WELCOME MAT */}
-        <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">Painel Administrativo global.</h1>
-          <p className="text-xs text-slate-500">Controle assinaturas, analise o caixa recorrente global e gerencie congelamento/bloqueio por inadimplência em tempo real com isolamento de tenant.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">Painel Administrativo global.</h1>
+            <p className="text-xs text-slate-500">Controle assinaturas, analise o caixa recorrente global e gerencie congelamento/bloqueio por inadimplência em tempo real com isolamento de tenant.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+          >
+            <Zap size={15} />
+            + Cadastrar Novo Cliente (Bypass)
+          </button>
         </div>
 
         {/* METRICS DASHBOARD */}
@@ -396,6 +408,20 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
             <li><strong>Bloqueio de Abas por Tier de Mensalidade</strong>: Altere o plano do cliente no painel para Básico. Entre no painel lojista correspondente e veja a barreira prateada. Faça upgrade para Profissional ou Premium no próprio dashboard e perceba o destravamento imediato de recursos!</li>
           </ul>
         </div>
+
+        {/* MODAL DE CADASTRO ADMIN BYPASS */}
+        {showCreateModal && (
+          <SetupModal
+            plan="professional"
+            isAdmin={true}
+            onClose={() => setShowCreateModal(false)}
+            onSuccess={(slug) => {
+              setShowCreateModal(false);
+              onRefreshAll();
+              onEnterTenantAdmin(slug);
+            }}
+          />
+        )}
 
       </div>
     </div>

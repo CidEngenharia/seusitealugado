@@ -15,6 +15,7 @@ interface SetupModalProps {
   plan: "basic" | "professional" | "premium";
   onClose: () => void;
   onSuccess: (slug: string) => void;
+  isAdmin?: boolean;
 }
 
 // Categorias de negócio sincronizadas com a Landing Page
@@ -121,8 +122,12 @@ function generateRandomPassword(): string {
   return pass;
 }
 
-export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps) {
+export default function SetupModal({ plan, onClose, onSuccess, isAdmin = false }: SetupModalProps) {
   const [step, setStep] = useState(1);
+
+  // Modo Admin Bypass
+  const [selectedPlan, setSelectedPlan] = useState<"basic" | "professional" | "premium">(plan);
+  const [adminDays, setAdminDays] = useState<number>(30);
 
   // Step 1: Nicho & Empresa
   const [category, setCategory] = useState("");
@@ -226,10 +231,10 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
       socials: { whatsapp, phone: whatsapp, email },
       mapLocation: googleAddress,
       fidelityProgram: { type: "points", rate: 1, rule: "1 ponto por real gasto" },
-      plan,
+      plan: isAdmin ? selectedPlan : plan,
       status: "active",
       createdAt: new Date().toISOString(),
-      planExpiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      planExpiration: new Date(Date.now() + adminDays * 24 * 60 * 60 * 1000).toISOString(),
       services: [],
       crmClients: [],
       bookings: [],
@@ -282,7 +287,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
             </p>
             <div className="bg-zinc-900 border border-emerald-500/30 rounded-xl px-4 py-2.5 mt-2">
               <span className="text-emerald-400 font-mono text-sm font-bold">
-                seusitealugado.com/{createdSlug}
+                {(typeof window !== "undefined" ? window.location.host : "seusitealugado.vercel.app") + "/" + createdSlug}
               </span>
             </div>
           </div>
@@ -296,7 +301,8 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
               <button
                 type="button"
                 onClick={() => {
-                  navigator.clipboard.writeText(`E-mail: ${email}\nSenha: ${password}\nSite: seusitealugado.com/${createdSlug}`);
+                  const domainUrl = typeof window !== "undefined" ? window.location.origin : "https://seusitealugado.vercel.app";
+                  navigator.clipboard.writeText(`E-mail: ${email}\nSenha: ${password}\nSite: ${domainUrl}/${createdSlug}`);
                   setCopiedCreds(true);
                   setTimeout(() => setCopiedCreds(false), 2000);
                 }}
@@ -349,12 +355,23 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-zinc-800 flex items-start justify-between gap-4 shrink-0">
           <div>
-            <div className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border mb-1.5 ${PLAN_COLORS[plan]}`}>
-              <Sparkles size={10} />
-              {PLAN_LABELS[plan]} (Pagamento Confirmado)
-            </div>
-            <h2 className="text-lg font-black text-white">Cadastro do Novo Site</h2>
-            <p className="text-xs text-zinc-400">Preencha as informações para colocarmos seu site no ar</p>
+            {isAdmin ? (
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border mb-1.5 bg-purple-500/20 text-purple-300 border-purple-500/40">
+                <ShieldCheck size={10} />
+                MODO ADMIN — LIBERAÇÃO DIRETA SEM COBRANÇA
+              </div>
+            ) : (
+              <div className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border mb-1.5 ${PLAN_COLORS[plan]}`}>
+                <Sparkles size={10} />
+                {PLAN_LABELS[plan]} (Pagamento Confirmado)
+              </div>
+            )}
+            <h2 className="text-lg font-black text-white">
+              {isAdmin ? "Simular & Cadastrar Cliente (Admin)" : "Cadastro do Novo Site"}
+            </h2>
+            <p className="text-xs text-zinc-400">
+              {isAdmin ? "Cadastre um site para seu cliente sem necessidade de pagamento real" : "Preencha as informações para colocarmos seu site no ar"}
+            </p>
           </div>
           <button
             type="button"
@@ -396,6 +413,46 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
           {/* === PASSO 1: Nicho & Nome da Empresa === */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">
+              {isAdmin && (
+                <div className="bg-purple-950/40 border border-purple-500/30 rounded-xl p-3.5 space-y-3">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-purple-300 flex items-center gap-1.5">
+                    <ShieldCheck size={14} /> Configurações de Ativação Manual (Admin)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                        Plano a Conceder
+                      </label>
+                      <select
+                        value={selectedPlan}
+                        onChange={(e) => setSelectedPlan(e.target.value as any)}
+                        className="w-full bg-zinc-900 border border-purple-500/40 rounded-xl px-3 py-2 text-white font-bold text-xs outline-none focus:border-purple-400"
+                      >
+                        <option value="basic">Plano Básico</option>
+                        <option value="professional">Plano Profissional</option>
+                        <option value="premium">Plano Premium</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                        Validade (Dias)
+                      </label>
+                      <select
+                        value={adminDays}
+                        onChange={(e) => setAdminDays(Number(e.target.value))}
+                        className="w-full bg-zinc-900 border border-purple-500/40 rounded-xl px-3 py-2 text-white font-bold text-xs outline-none focus:border-purple-400"
+                      >
+                        <option value={30}>30 Dias (1 Mês Teste)</option>
+                        <option value={90}>90 Dias (3 Meses)</option>
+                        <option value={180}>180 Dias (6 Meses)</option>
+                        <option value={365}>365 Dias (1 Ano VIP)</option>
+                        <option value={3650}>Ilimitado (10 Anos)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <h3 className="text-sm font-black text-white flex items-center gap-2">
                 <Building2 size={16} className="text-yellow-400" />
                 1. Escolha o Nicho e Nome do Negócio
@@ -624,7 +681,7 @@ export default function SetupModal({ plan, onClose, onSuccess }: SetupModalProps
                 </label>
                 <div className="flex items-center gap-0 rounded-xl overflow-hidden border border-zinc-700">
                   <span className="px-3 py-2 bg-zinc-800 text-zinc-500 text-xs font-mono border-r border-zinc-700">
-                    seusitealugado.com/
+                    {(typeof window !== "undefined" ? window.location.host : "seusitealugado.vercel.app") + "/"}
                   </span>
                   <input
                     type="text"

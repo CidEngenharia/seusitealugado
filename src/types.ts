@@ -8,8 +8,10 @@ export interface Service {
   name: string;
   description: string;
   price: number;
+  priceOnRequest?: boolean;
   duration: number; // in minutes
   imageUrl: string;
+  views?: number;
 }
 
 export interface ClientItem {

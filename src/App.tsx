@@ -187,12 +187,7 @@ export default function App() {
 
       {/* QUICK FLOATING MULTI-TENANT TEST BAR - ONLY FOR ADMINS */}
       {(role === 'superadmin' || role === 'tenantadmin') && currentView !== 'landing' && (
-        <div className="bg-zinc-900 border-b border-zinc-800 text-[10px] text-zinc-400 p-2 flex justify-between items-center px-4 font-mono select-none">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Ambiente Dev</span>
-          </div>
-          <div className="flex items-center gap-3">
+        <div className="bg-zinc-900 border-b border-zinc-800 text-[10px] text-zinc-400 p-2 flex justify-end items-center px-4 font-mono select-none gap-3">
             <span>Acesso Rápido:</span>
             <button 
               onClick={() => {
@@ -202,38 +197,7 @@ export default function App() {
               }}
               className={`hover:text-amber-500 ${currentView === 'landing' ? 'text-amber-500 font-bold' : ''}`}
             >
-              🏠 Home
-            </button>
-            <span>|</span>
-            <button 
-              onClick={() => {
-                setActiveSlug('barbeariakeu');
-                setCurrentView('tenant-public');
-                updateBrowserPath("/barbeariakeu");
-              }}
-              className={`hover:text-amber-500 ${activeSlug === 'barbeariakeu' && currentView === 'tenant-public' ? 'text-amber-500 font-bold' : ''}`}
-            >
-              ✂️ Barbearia Keu
-            </button>
-            <button 
-              onClick={() => {
-                setActiveSlug('salaodajulie');
-                setCurrentView('tenant-public');
-                updateBrowserPath("/salaodajulie");
-              }}
-              className={`hover:text-amber-500 ${activeSlug === 'salaodajulie' && currentView === 'tenant-public' ? 'text-amber-500 font-bold' : ''}`}
-            >
-              🌸 Salão Julie
-            </button>
-            <button 
-              onClick={() => {
-                setActiveSlug('oficinadocarlos');
-                setCurrentView('tenant-public');
-                updateBrowserPath("/oficinadocarlos");
-              }}
-              className={`hover:text-amber-500 ${activeSlug === 'oficinadocarlos' && currentView === 'tenant-public' ? 'text-amber-500 font-bold' : ''}`}
-            >
-              🔧 Oficina Carlos
+              Home
             </button>
             <span>|</span>
             <button 
@@ -243,16 +207,15 @@ export default function App() {
               }}
               className={`hover:text-amber-500 ${currentView === 'super-admin' ? 'text-amber-500 font-bold' : ''}`}
             >
-              🛡️ Admin
+              Admin Geral
             </button>
             <span>|</span>
             <button 
               onClick={handleLogout}
               className="hover:text-red-400 text-zinc-500"
             >
-              🚪 Sair
+              Sair
             </button>
-          </div>
         </div>
       )}
 
@@ -311,6 +274,30 @@ export default function App() {
             updateBrowserPath("/");
           }}
         />
+      )}
+
+      {currentView === 'tenant-public' && !activeTenant && !loading && (
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6 text-center">
+          <div className="max-w-md space-y-4 bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+            <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-mono text-2xl font-bold">
+              404
+            </div>
+            <h2 className="text-xl font-extrabold text-white">Site Não Encontrado</h2>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              O site no endereço <code className="text-amber-400 font-mono bg-zinc-950 px-2 py-0.5 rounded">/{activeSlug}</code> não existe ou ainda não foi publicado na plataforma.
+            </p>
+            <button
+              onClick={() => {
+                setCurrentView('landing');
+                setActiveSlug(null);
+                updateBrowserPath("/");
+              }}
+              className="w-full py-3 bg-amber-400 hover:bg-yellow-300 text-zinc-950 font-black rounded-xl text-xs transition-all cursor-pointer"
+            >
+              Voltar para a Página Inicial
+            </button>
+          </div>
+        </div>
       )}
 
       {currentView === 'tenant-admin' && activeTenant && (

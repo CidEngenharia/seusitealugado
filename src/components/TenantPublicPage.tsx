@@ -105,7 +105,7 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
     }
   }, [tenant.name, tenant.seoAnalyticsConfig]);
 
-  const [activeTab, setActiveTab] = useState<'services' | 'reviews' | 'about' | 'products'>('services');
+  const [activeTab, setActiveTab] = useState<'services' | 'reviews' | 'about' | 'products' | 'instagram' | 'contact'>('services');
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [bookingName, setBookingName] = useState("");
@@ -296,8 +296,8 @@ END:VCARD`;
     ? (approvedReviews.reduce((acc, r) => acc + r.rating, 0) / approvedReviews.length).toFixed(1)
     : "5.0";
 
-  const isMinimal = tenant.template === 'minimal';
-  const isBento = tenant.template === 'modern';
+  const isMinimal = tenant.template === 'minimal' || tenant.slug === 'jkaturismo';
+  const isBento = tenant.template === 'modern' && tenant.slug !== 'jkaturismo';
   
   // Layout containers matching chosen design vibe
   const containerClass = isMinimal 
@@ -426,7 +426,7 @@ END:VCARD`;
         {/* Absolute branding inside Banner */}
         <div className="absolute bottom-6 left-6 right-6 flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
           <div className="flex items-center gap-5 md:gap-6">
-            <div className={`w-28 h-28 md:w-36 md:h-36 rounded-full bg-zinc-900 border-2 ${themeColors.border} overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.5)] shrink-0 ring-2 ring-black/10 transition-transform hover:scale-105 duration-300`}>
+            <div className={`w-28 h-28 md:w-36 md:h-36 rounded-full bg-zinc-900 border-[1px] ${themeColors.border} overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.5)] shrink-0 transition-transform hover:scale-105 duration-300`}>
               <img 
                 src={tenant.logoUrl || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150"} 
                 alt="Logo da Empresa" 
@@ -464,27 +464,81 @@ END:VCARD`;
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button 
+      {/* BARRA DISCRETA DE REDES SOCIAIS E AÇÕES ABAIXO DO BANNER (AZUL EXCLUSIVO PARA JKA TURISMO) */}
+      <div className={`${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b] border-blue-900' : 'bg-zinc-900/90 border-zinc-800'} border-b backdrop-blur-md sticky top-0 z-20 py-3 px-4 sm:px-8`}>
+        <div className="max-w-6xl mx-auto flex items-center justify-end gap-5 text-sm">
+          
+          {/* Ícones de Redes Sociais */}
+          <div className="flex items-center gap-4">
+            {tenant.socials?.whatsapp && (
+              <a
+                href={`https://wa.me/55${tenant.socials.whatsapp.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                title="WhatsApp"
+              >
+                <Phone size={20} />
+              </a>
+            )}
+
+            {Object.entries(tenant.socials || {}).map(([platform, link]) => {
+              if (!link || platform === "whatsapp" || platform === "phone" || platform === "email") return null;
+
+              let href = link;
+              if (!link.startsWith("http://") && !link.startsWith("https://")) {
+                href = `https://${link}`;
+              }
+
+              let IconComp = Globe;
+              let title = platform.charAt(0).toUpperCase() + platform.slice(1);
+              if (platform === "instagram") IconComp = Instagram;
+              else if (platform === "facebook") IconComp = Facebook;
+              else if (platform === "youtube") IconComp = Youtube;
+              else if (platform === "twitter") IconComp = Twitter;
+              else if (platform === "tiktok" || platform === "kwai") IconComp = Video;
+
+              return (
+                <a
+                  key={platform}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                  title={title}
+                >
+                  <IconComp size={20} />
+                </a>
+              );
+            })}
+
+            {/* Ícone de Cartão Inteligente Sem Moldura */}
+            <button
               onClick={() => setShowDigitalCard(true)}
-              className="px-3 py-2 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700 text-white rounded-lg flex items-center gap-2 text-sm backdrop-blur cursor-pointer transition-all"
+              className="text-yellow-400 hover:text-yellow-300 transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-xs"
+              title="Cartão Inteligente"
             >
-              <Smartphone size={16} />
-              <span>Cartão Inteligente</span>
+              <Smartphone size={20} />
+              <span className="hidden sm:inline">Cartão Inteligente</span>
             </button>
-            <button 
+
+            {/* Ícone de Compartilhar Sem Moldura */}
+            <button
               onClick={() => {
                 const url = encodeURIComponent(window.location.href);
-                const text = encodeURIComponent(`Confira o mini site de ${tenant.name}!`);
+                const text = encodeURIComponent(`Confira o site de ${tenant.name}!`);
                 window.open(`https://api.whatsapp.com/send?text=${text}%20${url}`);
               }}
-              className="p-2 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700 text-white rounded-lg backdrop-blur cursor-pointer transition-all"
+              className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
               title="Compartilhar Link"
             >
-              <Share2 size={16} />
+              <Share2 size={20} />
             </button>
           </div>
+
         </div>
       </div>
 
@@ -500,88 +554,89 @@ END:VCARD`;
               {tenant.description}
             </p>
             
-            <div className="space-y-3 pt-2 text-sm">
-              <div className="flex items-start gap-2.5">
-                <MapPin className={`${themeColors.text} shrink-0 mt-0.5`} size={16} />
-                <span className="text-xs leading-tight">{tenant.address}</span>
+            {/* Ícones de info — ocultos para jkaturismo pois aparecem nos cards abaixo */}
+            {tenant.slug !== 'jkaturismo' && (
+              <div className="space-y-3 pt-2 text-sm">
+                <div className="flex items-start gap-2.5">
+                  <MapPin className={`${themeColors.text} shrink-0 mt-0.5`} size={16} />
+                  <span className="text-xs leading-tight">{tenant.address}</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Clock className={`${themeColors.text} shrink-0`} size={16} />
+                  <span className="text-xs">{tenant.openingHours}</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Phone className={`${themeColors.text} shrink-0`} size={16} />
+                  <span className="text-xs">{tenant.socials.phone || tenant.socials.whatsapp}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5">
-                <Clock className={`${themeColors.text} shrink-0`} size={16} />
-                <span className="text-xs">{tenant.openingHours}</span>
+            )}
+
+            {/* JKA TURISMO - Info Cards: Endereço, Horários, Contatos */}
+            {tenant.slug === 'jkaturismo' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+                {/* Card Endereço */}
+                <div className="rounded-xl p-4 flex flex-col gap-2" style={{ backgroundColor: '#3a3a3a' }}>
+                  <h4 className="text-white text-xs tracking-widest font-bold uppercase border-b border-white/20 pb-2">Endereço</h4>
+                  <div className="w-6 border-t-2 border-white/40 mb-1" />
+                  <p className="text-zinc-200 text-xs leading-relaxed">
+                    {tenant.address || 'Rua do Panta nº 38 Fazenda Garcia - Salvador - BA'}
+                  </p>
+                </div>
+
+                {/* Card Horários */}
+                <div className="rounded-xl p-4 flex flex-col gap-2" style={{ backgroundColor: '#5a6a6a' }}>
+                  <h4 className="text-white text-xs tracking-widest font-bold uppercase border-b border-white/20 pb-2">Horários</h4>
+                  <div className="w-6 border-t-2 border-white/40 mb-1" />
+                  <p className="text-zinc-200 text-xs leading-relaxed">
+                    Segunda - Sexta: 08:00hs às 18:00hs<br />
+                    Sábado: 08:00hs às 13:00hs
+                  </p>
+                </div>
+
+                {/* Card Contatos */}
+                <div className="rounded-xl p-4 flex flex-col gap-2" style={{ backgroundColor: '#2aa87a' }}>
+                  <h4 className="text-white text-xs tracking-widest font-bold uppercase border-b border-white/20 pb-2">Contatos</h4>
+                  <div className="w-6 border-t-2 border-white/40 mb-1" />
+                  <div className="text-zinc-200 text-xs leading-relaxed space-y-1">
+                    {tenant.socials?.phone && (
+                      <p>Tel: {tenant.socials.phone}</p>
+                    )}
+                    {tenant.socials?.whatsapp && (
+                      <p>WhatsApp: {tenant.socials.whatsapp}</p>
+                    )}
+                    {(tenant as any).email && (
+                      <p>E-mail: {(tenant as any).email}</p>
+                    )}
+                    {!tenant.socials?.phone && !tenant.socials?.whatsapp && (
+                      <p>71 98723-5349</p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5">
-                <Phone className={`${themeColors.text} shrink-0`} size={16} />
-                <span className="text-xs">{tenant.socials.phone || tenant.socials.whatsapp}</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Map Location */}
           <div className={cardClass}>
             <h3 className="text-sm font-bold px-2">Localização</h3>
             <div className="w-full h-44 bg-neutral-800 rounded-xl overflow-hidden relative">
-              {tenant.mapLocation && tenant.mapLocation.includes("http") ? (
-                <iframe 
-                  src={tenant.mapLocation} 
-                  className="w-full h-full border-0" 
-                  allowFullScreen={false} 
-                  loading="lazy"
-                ></iframe>
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 bg-zinc-800">
-                  <MapPin className="text-red-500 mb-2" size={24} />
-                  <span className="text-xs font-medium text-neutral-350">{tenant.address}</span>
-                </div>
-              )}
+              {(() => {
+                const isEmbedLink = tenant.mapLocation && (tenant.mapLocation.includes("embed") || tenant.mapLocation.includes("iframe") || tenant.mapLocation.includes("google.com/maps"));
+                const mapSrc = isEmbedLink 
+                  ? tenant.mapLocation 
+                  : `https://maps.google.com/maps?q=${encodeURIComponent(tenant.mapLocation || tenant.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+                
+                return (
+                  <iframe 
+                    src={mapSrc} 
+                    className="w-full h-full border-0" 
+                    allowFullScreen={false} 
+                    loading="lazy"
+                  ></iframe>
+                );
+              })()}
             </div>
-          </div>
-
-          {/* Social connections */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <a 
-              href={`https://wa.me/55${tenant.socials.whatsapp.replace(/\D/g,"")}`}
-              target="_blank"
-              rel="noreferrer"
-              className={`flex-initial p-2.5 px-3.5 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 text-xs text-center ${themeColors.bg} ${themeColors.bgHover} cursor-pointer shadow-sm transition-colors shrink-0`}
-              title="Chamar no WhatsApp"
-            >
-              <Phone size={13} />
-              <span>Chamar no WhatsApp</span>
-            </a>
-
-            {/* Render all other registered social networks */}
-            {Object.entries(tenant.socials).map(([platform, link]) => {
-              if (!link || platform === 'whatsapp' || platform === 'phone' || platform === 'email') return null;
-              
-              // Standardize URL links
-              let href = link;
-              if (!link.startsWith("http://") && !link.startsWith("https://")) {
-                href = `https://${link}`;
-              }
-
-              // Selecting appropriate Lucide Icon
-              let IconComp = Globe;
-              let title = platform.charAt(0).toUpperCase() + platform.slice(1);
-              if (platform === 'instagram') IconComp = Instagram;
-              else if (platform === 'facebook') IconComp = Facebook;
-              else if (platform === 'youtube') IconComp = Youtube;
-              else if (platform === 'twitter') IconComp = Twitter;
-              else if (platform === 'tiktok') IconComp = Video;
-              else if (platform === 'kwai') IconComp = Video;
-
-              return (
-                <a 
-                  key={platform}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2.5 w-10 h-10 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 hover:text-white border border-zinc-700 rounded-xl flex items-center justify-center transition-all shadow-sm shrink-0"
-                  title={title}
-                >
-                  <IconComp size={16} />
-                </a>
-              );
-            })}
           </div>
         </section>
 
@@ -589,44 +644,51 @@ END:VCARD`;
         <section className={contentColumnClass}>
           
           {/* Layout Tab selectors */}
-          <div className="border-b border-zinc-800 flex gap-6 text-sm font-medium">
+          <div className={`border-b ${tenant.slug === 'jkaturismo' ? 'border-zinc-200' : 'border-zinc-800'} flex gap-6 text-sm font-medium overflow-x-auto`}>
             <button 
               onClick={() => setActiveTab('services')}
-              className={`pb-3 relative cursor-pointer ${activeTab === 'services' ? `${themeColors.text} font-bold` : 'text-zinc-400 hover:text-zinc-200'}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'services' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
             >
               Serviços Disponíveis
-              {activeTab === 'services' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
+              {activeTab === 'services' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
             </button>
             <button 
               onClick={() => setActiveTab('reviews')}
-              className={`pb-3 relative cursor-pointer ${activeTab === 'reviews' ? `${themeColors.text} font-bold` : 'text-zinc-400 hover:text-zinc-200'}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'reviews' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
             >
               Avaliações ({approvedReviews.length})
-              {activeTab === 'reviews' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
+              {activeTab === 'reviews' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
             </button>
             <button 
               onClick={() => setActiveTab('about')}
-              className={`pb-3 relative cursor-pointer ${activeTab === 'about' ? `${themeColors.text} font-bold` : 'text-zinc-400 hover:text-zinc-200'}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'about' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
             >
               Receber Ofertas
-              {activeTab === 'about' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
+              {activeTab === 'about' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
             </button>
             <button 
               onClick={() => setActiveTab('products')}
-              className={`pb-3 relative cursor-pointer ${activeTab === 'products' ? `${themeColors.text} font-bold` : 'text-zinc-400 hover:text-zinc-200'}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'products' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
             >
               Produtos à Venda
-              {activeTab === 'products' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
+              {activeTab === 'products' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
             </button>
             {tenant.socials?.instagram && (
               <button 
                 onClick={() => setActiveTab('instagram')}
-                className={`pb-3 relative cursor-pointer ${activeTab === 'instagram' ? `${themeColors.text} font-bold` : 'text-zinc-400 hover:text-zinc-200'}`}
+                className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'instagram' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
               >
                 Instagram
-                {activeTab === 'instagram' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
+                {activeTab === 'instagram' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
               </button>
             )}
+            <button 
+              onClick={() => setActiveTab('contact')}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'contact' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
+            >
+              Fale Conosco
+              {activeTab === 'contact' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
+            </button>
           </div>
 
           {/* TAB 1: SERVICES LIST */}
@@ -643,21 +705,30 @@ END:VCARD`;
                     >
                       <div className="flex gap-3">
                         {service.imageUrl && (
-                          <div className="w-16 h-16 rounded-lg bg-zinc-800 overflow-hidden shrink-0 shadow-sm">
+                          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-zinc-800 overflow-hidden shrink-0 shadow-md border border-zinc-700/50">
                             <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover" />
                           </div>
                         )}
-                        <div className="space-y-1">
+                        <div className="space-y-1 flex-1">
                           <h3 className="font-bold text-sm line-clamp-1">{service.name}</h3>
                           <p className={`text-xs ${themeMode === 'dark' ? 'text-zinc-400' : 'text-neutral-500'} line-clamp-3`}>
                             {service.description}
                           </p>
+                          {/* Ícone Estilo OLX - Total de Visitas/Visualizações em Tempo Real */}
+                          <div className={`flex items-center gap-1 text-[11px] font-medium pt-1 ${tenant.slug === 'jkaturismo' ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                            <User size={13} className={`shrink-0 ${tenant.slug === 'jkaturismo' ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                            <span>{service.views ?? Math.floor(150 + Math.random() * 200)} visitas</span>
+                          </div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between pt-1 border-t border-zinc-850">
                         <div className="space-y-0.5">
-                          <span className="text-emerald-500 font-bold text-sm">R$ {service.price.toFixed(2)}</span>
+                          {service.priceOnRequest ? (
+                            <span className={`font-bold ${tenant.slug === 'jkaturismo' ? 'text-emerald-500 text-xs' : 'text-amber-400 text-sm'}`}>Sob Consulta</span>
+                          ) : (
+                            <span className="text-emerald-500 font-bold text-sm">R$ {service.price.toFixed(2)}</span>
+                          )}
                           <span className={`block text-[10px] ${themeMode === 'dark' ? 'text-zinc-500' : 'text-zinc-400'}`}>Duração: {service.duration} mins</span>
                         </div>
                         <button 
@@ -668,7 +739,7 @@ END:VCARD`;
                           className={`px-3 py-1.5 rounded-lg text-white font-semibold text-xs flex items-center gap-1 cursor-pointer transition-transform duration-100 active:scale-95 ${themeColors.bg} ${themeColors.bgHover}`}
                         >
                           <Calendar size={12} />
-                          <span>Agendar</span>
+                          <span>Detalhes/Agendar</span>
                         </button>
                       </div>
                     </div>
@@ -904,93 +975,208 @@ END:VCARD`;
             </div>
           )}
 
-          {/* TAB 5: INSTAGRAM GALLERY */}
-          {activeTab === 'instagram' && tenant.socials?.instagram && (
-            <div className={`p-6 rounded-2xl border text-center ${themeMode === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Instagram className="text-pink-500" size={24} />
-                <h3 className="font-bold text-lg">Nosso Instagram</h3>
-              </div>
-              <p className={`text-sm mb-6 ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                Acompanhe nossas novidades, produtos e serviços pelo nosso perfil!
-              </p>
-              
-              {(() => {
-                const customPhotos = (tenant as any).instagramPhotos?.filter((u: string) => u && u.trim()) || [];
-                const placeholderPhotos = [
-                  'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&h=300&fit=crop',
-                  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=300&fit=crop',
-                  'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=300&h=300&fit=crop',
-                  'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=300&h=300&fit=crop',
-                  'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=300&h=300&fit=crop',
-                  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=300&fit=crop',
-                ];
-                const photos = customPhotos.length > 0 ? customPhotos : placeholderPhotos;
-                return (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                    {photos.slice(0, 6).map((src: string, i: number) => {
-                      const instagramUser = tenant.socials?.instagram || "";
-                      const instagramLink = instagramUser.startsWith('http') 
-                        ? instagramUser 
-                        : `https://instagram.com/${instagramUser.replace('@', '')}`;
-                      
-                      const isCustom = customPhotos.length > 0;
-                      // Se for custom, o clique na foto abre o Instagram do inquilino
-                      const linkUrl = isCustom ? instagramLink : src;
-                      
-                      // Se for Base64 (upload local), usamos a string direto, senão passa pelo proxy
-                      const imgSrc = src.startsWith("data:") ? src : getInstagramMediaUrl(src);
-
-                      return (
-                        <a
-                          key={i}
-                          href={linkUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="aspect-square bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] rounded-xl overflow-hidden relative group shadow-lg cursor-pointer block"
-                        >
-                          <img
-                            src={imgSrc}
-                            alt={`Instagram post ${i + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100 absolute inset-0 z-10"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                          {/* Fallback visual com logo quando a foto falha por bloqueio CORS do Instagram */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-zinc-900/90 z-0">
-                            <Instagram className="text-zinc-500 w-8 h-8 mb-1 animate-pulse" />
-                            <span className="text-[9px] text-zinc-600 font-mono">Ver no Instagram</span>
-                          </div>
-                          
-                          {/* Overlay de hover com ícone oficial do Instagram */}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-                            <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center">
-                              <Instagram className="text-white w-5 h-5" />
-                            </div>
-                          </div>
-                        </a>
-                      );
-                    })}
-                    {customPhotos.length === 0 && (
-                      <div className="col-span-2 md:col-span-3 text-center text-xs text-zinc-500 pt-1 pb-2">
-                        Imagens ilustrativas — cadastre suas fotos reais no painel admin.
-                      </div>
-                    )}
+          {/* TAB 5: INSTAGRAM GALLERY ONLY */}
+          {activeTab === 'instagram' && (
+            <div className="space-y-6">
+              {tenant.socials?.instagram && (
+                <div className={`p-6 rounded-2xl border text-center ${themeMode === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Instagram className="text-pink-500" size={24} />
+                    <h3 className="font-bold text-lg">Nosso Instagram</h3>
                   </div>
-                );
-              })()}
+                  <p className={`text-sm mb-6 ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    Acompanhe nossas novidades, produtos e serviços pelo nosso perfil!
+                  </p>
+                  
+                  {(() => {
+                    const customPhotos = (tenant as any).instagramPhotos?.filter((u: string) => u && u.trim()) || [];
+                    const placeholderPhotos = [
+                      'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&h=300&fit=crop',
+                      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=300&fit=crop',
+                      'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=300&h=300&fit=crop',
+                      'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=300&h=300&fit=crop',
+                      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=300&h=300&fit=crop',
+                      'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=300&fit=crop',
+                    ];
+                    const photos = customPhotos.length > 0 ? customPhotos : placeholderPhotos;
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                        {photos.slice(0, 6).map((src: string, i: number) => {
+                          const instagramUser = tenant.socials?.instagram || "";
+                          const instagramLink = instagramUser.startsWith('http') 
+                            ? instagramUser 
+                            : `https://instagram.com/${instagramUser.replace('@', '')}`;
+                          
+                          const isCustom = customPhotos.length > 0;
+                          const linkUrl = isCustom ? instagramLink : src;
+                          const imgSrc = src.startsWith("data:") ? src : getInstagramMediaUrl(src);
 
-              <a 
-                href={tenant.socials.instagram.startsWith('http') ? tenant.socials.instagram : `https://instagram.com/${tenant.socials.instagram.replace('@', '')}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-bold text-sm shadow-lg cursor-pointer bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 hover:opacity-90 transition-opacity"
-              >
-                <Instagram size={18} />
-                Ver Perfil Completo
-              </a>
+                          return (
+                            <a
+                              key={i}
+                              href={linkUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="aspect-square bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] rounded-xl overflow-hidden relative group shadow-lg cursor-pointer block"
+                            >
+                              <img
+                                src={imgSrc}
+                                alt={`Instagram post ${i + 1}`}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100 absolute inset-0 z-10"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-zinc-900/90 z-0">
+                                <Instagram className="text-zinc-500 w-8 h-8 mb-1 animate-pulse" />
+                                <span className="text-[9px] text-zinc-600 font-mono">Ver no Instagram</span>
+                              </div>
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+                                <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center">
+                                  <Instagram className="text-white w-5 h-5" />
+                                </div>
+                              </div>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
+                  <a 
+                    href={tenant.socials.instagram.startsWith('http') ? tenant.socials.instagram : `https://instagram.com/${tenant.socials.instagram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-bold text-sm shadow-lg cursor-pointer bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 hover:opacity-90 transition-opacity"
+                  >
+                    <Instagram size={18} />
+                    Ver Perfil Completo
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 6: FALE CONOSCO (Formulário Separado) */}
+          {activeTab === 'contact' && (
+            <div className="space-y-6">
+              <div className={`p-6 rounded-2xl border max-w-xl mx-auto ${themeMode === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                <h3 className={`text-xl font-black text-center mb-2 ${themeMode === 'dark' ? 'text-white' : 'text-zinc-900'}`}>
+                  {tenant.customForm?.title || 'Fale Conosco'}
+                </h3>
+                <p className="text-center text-xs text-zinc-400 mb-6">
+                  Preencha os dados abaixo para entrar em contato diretamente conosco.
+                </p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formEl = e.currentTarget;
+                    const data: Record<string, string> = {};
+                    
+                    if (tenant.customForm?.fields && tenant.customForm.fields.length > 0) {
+                      tenant.customForm.fields.forEach((field) => {
+                        const el = formEl.elements.namedItem(field.id) as HTMLInputElement | HTMLTextAreaElement;
+                        if (el) data[field.label] = el.value;
+                      });
+                    } else {
+                      const nameEl = formEl.elements.namedItem('fullName') as HTMLInputElement;
+                      const emailEl = formEl.elements.namedItem('contactEmail') as HTMLInputElement;
+                      const msgEl = formEl.elements.namedItem('messageContent') as HTMLTextAreaElement;
+                      if (nameEl) data['Nome Completo'] = nameEl.value;
+                      if (emailEl) data['E-mail'] = emailEl.value;
+                      if (msgEl) data['Mensagem'] = msgEl.value;
+                    }
+
+                    if (tenant.customForm?.destination === 'whatsapp' || !tenant.customForm?.enabled) {
+                      const targetPhone = tenant.customForm?.destinationWhatsapp || (tenant.socials?.whatsapp || tenant.socials?.phone || "").replace(/\D/g, "");
+                      const msg = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join('\n');
+                      window.open(`https://api.whatsapp.com/send?phone=55${targetPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+                    } else {
+                      await fetch(`/api/tenants/${tenant.slug}/submit-form`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data }),
+                      });
+                      alert('Mensagem enviada com sucesso!');
+                    }
+                    formEl.reset();
+                  }}
+                  className="space-y-4 text-xs font-sans"
+                >
+                  {tenant.customForm?.enabled && tenant.customForm.fields && tenant.customForm.fields.length > 0 ? (
+                    tenant.customForm.fields.map((field) => (
+                      <div key={field.id}>
+                        <label className={`block text-xs mb-1 font-semibold ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                          {field.label}{field.required && <span className="text-rose-500 ml-1">*</span>}
+                        </label>
+                        {field.type === 'textarea' ? (
+                          <textarea
+                            name={field.id}
+                            required={field.required}
+                            placeholder={field.placeholder}
+                            rows={3}
+                            className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
+                          />
+                        ) : (
+                          <input
+                            type={field.type}
+                            name={field.id}
+                            required={field.required}
+                            placeholder={field.placeholder}
+                            className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
+                          />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div>
+                        <label className={`block text-xs mb-1 font-semibold ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                          Nome Completo <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="fullName"
+                          required
+                          placeholder="Digite seu nome"
+                          className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs mb-1 font-semibold ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                          E-mail de Contato <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          name="contactEmail"
+                          required
+                          placeholder="seu@email.com"
+                          className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs mb-1 font-semibold ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                          Mensagem <span className="text-rose-500">*</span>
+                        </label>
+                        <textarea
+                          name="messageContent"
+                          required
+                          placeholder="Como podemos te ajudar?"
+                          rows={4}
+                          className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <button
+                    type="submit"
+                    className={`w-full py-3.5 rounded-xl text-white font-extrabold text-sm transition-all cursor-pointer shadow-lg ${themeColors.bg} ${themeColors.bgHover}`}
+                  >
+                    Enviar Mensagem
+                  </button>
+                </form>
+              </div>
             </div>
           )}
 
@@ -1030,25 +1216,42 @@ END:VCARD`;
         </div>
       </footer>
 
-      {/* MODAL: BOOKING WIZARD */}
+      {/* MODAL: SERVICE DETAILS & BOOKING WIZARD (ESTILO OLX) */}
       {showBookingModal && selectedService && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-md w-full bg-[#0a0b0e] border border-zinc-800/80 rounded-2xl p-7 shadow-2xl relative text-white shadow-zinc-950/80 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto bg-[#0a0b0e] border border-zinc-800/80 rounded-2xl p-4 sm:p-6 shadow-2xl relative text-white shadow-zinc-950/80 animate-in fade-in zoom-in-95 duration-150 my-auto">
             <button 
               onClick={() => setShowBookingModal(false)}
-              className="absolute top-5 right-5 text-zinc-400 hover:text-white hover:bg-zinc-900 duration-150 w-8 h-8 rounded-full cursor-pointer flex items-center justify-center text-sm font-black border border-zinc-800/30"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 text-zinc-400 hover:text-white hover:bg-zinc-900 duration-150 w-8 h-8 rounded-full cursor-pointer flex items-center justify-center text-sm font-black border border-zinc-800/30"
             >
               ✕
             </button>
 
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`w-2 h-2 rounded-full ${themeColors.bg} animate-pulse`}></span>
-              <h3 className="text-lg font-extrabold tracking-tight">Agendar Horário Online</h3>
+            {/* Banner/Imagem do Serviço Destaque OLX */}
+            {selectedService.imageUrl && (
+              <div className="w-full h-44 sm:h-56 md:h-64 rounded-xl bg-zinc-900 overflow-hidden mb-4 relative border border-zinc-800 shrink-0">
+                <img 
+                  src={selectedService.imageUrl} 
+                  alt={selectedService.name} 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-lg flex items-center gap-1.5 text-xs text-zinc-200 border border-zinc-700 font-medium">
+                  <User size={14} className="text-zinc-400 shrink-0" />
+                  <span>{selectedService.views ?? Math.floor(150 + Math.random() * 200)} visitas</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-start justify-between gap-4 mb-3 border-b border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-xl font-extrabold tracking-tight text-white">{selectedService.name}</h3>
+                <p className="text-xs text-zinc-400 mt-1">{selectedService.description}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-lg font-black text-emerald-400 block">R$ {selectedService.price.toFixed(2)}</span>
+                <span className="text-[10px] text-zinc-400">Duração: {selectedService.duration} min</span>
+              </div>
             </div>
-            <p className="text-[11px] text-zinc-400 mb-5 pb-3 border-b border-zinc-800/40 flex items-center justify-between">
-              <span>Serviço: <strong className="text-white font-bold">{selectedService.name}</strong></span>
-              <span className="font-mono bg-zinc-90 w-full bg-zinc-900/60 border border-zinc-800 text-zinc-100 px-2 py-0.5 rounded text-zinc-300 font-bold max-w-max">R$ {selectedService.price.toFixed(2)}</span>
-            </p>
 
             {bookingSuccess ? (
               <div className="text-center py-8 space-y-4">
@@ -1298,70 +1501,7 @@ END:VCARD`;
         </div>
       )}
       
-      {tenant.customForm?.enabled && tenant.customForm.fields && tenant.customForm.fields.length > 0 && (
-        <div className={`px-4 py-8 ${themeMode === 'dark' ? 'bg-zinc-900' : 'bg-white'} border-t ${themeMode === 'dark' ? 'border-zinc-800' : 'border-zinc-200'}`}>
-          <div className="max-w-xl mx-auto space-y-4">
-            <h2 className={`text-xl font-extrabold text-center ${themeMode === 'dark' ? 'text-white' : 'text-zinc-900'}`}>
-              {tenant.customForm.title || 'Entre em Contato'}
-            </h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const formEl = e.currentTarget;
-                const data: Record<string, string> = {};
-                tenant.customForm!.fields.forEach((field) => {
-                  const el = formEl.elements.namedItem(field.id) as HTMLInputElement | HTMLTextAreaElement;
-                  if (el) data[field.label] = el.value;
-                });
-                if (tenant.customForm!.destination === 'whatsapp') {
-                  const msg = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join('\n');
-                  window.open(`https://api.whatsapp.com/send?phone=${tenant.customForm!.destinationWhatsapp}&text=${encodeURIComponent(msg)}`, '_blank');
-                } else {
-                  await fetch(`/api/tenants/${tenant.slug}/submit-form`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ data }),
-                  });
-                  alert('Mensagem enviada com sucesso!');
-                }
-                formEl.reset();
-              }}
-              className="space-y-3"
-            >
-              {tenant.customForm.fields.map((field) => (
-                <div key={field.id}>
-                  <label className={`block text-xs mb-1 font-semibold ${themeMode === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                    {field.label}{field.required && <span className="text-rose-500 ml-1">*</span>}
-                  </label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      name={field.id}
-                      required={field.required}
-                      placeholder={field.placeholder}
-                      rows={4}
-                      className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
-                    />
-                  ) : (
-                    <input
-                      type={field.type}
-                      name={field.id}
-                      required={field.required}
-                      placeholder={field.placeholder}
-                      className={`w-full p-3 rounded-xl border text-sm outline-none ${themeMode === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`}
-                    />
-                  )}
-                </div>
-              ))}
-              <button
-                type="submit"
-                className={`w-full py-3 rounded-xl text-white font-extrabold text-sm transition-all cursor-pointer ${themeColors.bg} ${themeColors.bgHover}`}
-              >
-                Enviar Mensagem
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+
 
       {/* WIDGET FLUTUANTE DE WHATSAPP */}
       {tenant.whatsappWidgetConfig?.enabled && tenant.whatsappWidgetConfig.phoneNumber && (

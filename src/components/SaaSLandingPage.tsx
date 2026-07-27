@@ -917,7 +917,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
                       className="truncate font-mono text-[9px] text-zinc-300 hover:text-indigo-400 font-extrabold transition-colors cursor-pointer text-left flex items-center gap-1"
                       title={lang === 'pt' ? "Clique para abrir o site ativo" : "Click to open active site"}
                     >
-                      <span>seusitealugado.com/{currentPortfolio.slug}</span>
+                      <span>{(typeof window !== "undefined" ? window.location.host : "seusitealugado.vercel.app") + "/" + currentPortfolio.slug}</span>
                     </button>
                   </div>
                   <button
