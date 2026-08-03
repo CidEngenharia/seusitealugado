@@ -215,7 +215,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
   // ────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen overflow-y-auto bg-slate-50 text-slate-900 font-sans p-6 selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-6 selection:bg-indigo-600 selection:text-white">
       
       {/* HEADER CONTROL */}
       <div className="max-w-6xl mx-auto flex items-center justify-between mb-8 border-b border-slate-200 pb-4">

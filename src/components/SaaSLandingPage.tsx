@@ -345,6 +345,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       coverGradient: "from-rose-500/30 via-zinc-900/90 to-zinc-950",
       avatarEmoji: "⚡",
       avatarImg: "/src/assets/images/sallesfit_logo_1782162401662.jpg",
+      bannerImg: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=60",
       ratingText: lang === 'pt' ? "★ 5.0 • 1 avaliação • ROSE" : "★ 5.0 • 1 review • ROSE",
       aboutTitle: lang === 'pt' ? "Quem Somos" : "About Us",
       aboutDesc: lang === 'pt' 
@@ -381,6 +382,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       coverGradient: "from-amber-650/40 via-zinc-900/90 to-zinc-950",
       avatarEmoji: "💈",
       avatarImg: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=150&auto=format&fit=crop&q=60",
+      bannerImg: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop&q=60",
       ratingText: lang === 'pt' ? "★ 4.5 • 2 avaliações • MONO" : "★ 4.5 • 2 reviews • MONO",
       aboutTitle: lang === 'pt' ? "Quem Somos" : "About Us",
       aboutDesc: lang === 'pt' 
@@ -417,6 +419,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       coverGradient: "from-rose-500/30 via-zinc-900/90 to-zinc-950",
       avatarEmoji: "🌸",
       avatarImg: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150&auto=format&fit=crop&q=60",
+      bannerImg: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=60",
       ratingText: lang === 'pt' ? "★ 4.8 • 5 avaliações • SERIF" : "★ 4.8 • 5 reviews • SERIF",
       aboutTitle: lang === 'pt' ? "Quem Somos" : "About Us",
       aboutDesc: lang === 'pt' 
@@ -453,6 +456,7 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
       coverGradient: "from-blue-600/30 via-zinc-900/90 to-zinc-950",
       avatarEmoji: "🔧",
       avatarImg: "https://images.unsplash.com/photo-1616788494707-ec28f08d05a1?w=150&auto=format&fit=crop&q=60",
+      bannerImg: "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=60",
       ratingText: lang === 'pt' ? "★ 4.7 • 8 avaliações • SANS" : "★ 4.7 • 8 reviews • SANS",
       aboutTitle: lang === 'pt' ? "Quem Somos" : "About Us",
       aboutDesc: lang === 'pt' 
@@ -933,16 +937,27 @@ export default function SaaSLandingPage({ tenants, onSelectTenant, onGoToSearch,
                 {/* High-Fidelity Client Main Public View Simulator (scrollable viewport) */}
                 <div className="h-[365px] overflow-y-auto pr-0.5 space-y-4 text-left scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                   
-                  {/* Banner / Cover with Gradient & Overlapping Profile image */}
-                  <div className="relative h-28 rounded-2xl overflow-hidden bg-[#111115] border border-zinc-800/40">
-                    <div className={`absolute inset-0 bg-cover bg-center opacity-70`} style={{ backgroundImage: `url(${currentPortfolio.avatarImg})` }} />
-                    <div className={`absolute inset-0 bg-gradient-to-t ${currentPortfolio.coverGradient}`} />
+                  {/* Preview Banner with Banner Image & Overlayed Circular Logo (estilo Portfólio) */}
+                  <div className="relative h-44 rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800/40 flex items-center justify-center">
+                    {/* Background Banner Image */}
+                    {currentPortfolio.bannerImg && (
+                      <img 
+                        src={currentPortfolio.bannerImg} 
+                        alt="Banner background" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-50 filter blur-[0.5px]"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent"></div>
                     
-                    {/* Overlapping profile badge */}
-                    <div className="absolute -bottom-1 left-3 flex items-end gap-2.5 z-10">
-                      <div className={`w-12 h-12 rounded-2xl bg-zinc-950 border-2 ${currentPortfolio.accentBorder} overflow-hidden flex items-center justify-center p-0.5 shadow-25 shadow-black/80`}>
-                        <img src={currentPortfolio.avatarImg} className="w-full h-full object-cover rounded-xl" alt="" />
-                      </div>
+                    {/* Centered Circular Logo */}
+                    <div className="flex flex-col items-center gap-1.5 z-10 mt-2">
+                      <img 
+                        src={currentPortfolio.avatarImg} 
+                        alt={currentPortfolio.title}
+                        className="w-14 h-14 rounded-full object-cover border border-white/40 shadow-2xl"
+                        referrerPolicy="no-referrer"
+                      />
                     </div>
                   </div>
 

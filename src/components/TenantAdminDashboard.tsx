@@ -1116,10 +1116,10 @@ export default function TenantAdminDashboard({
   return (
     <div
       id="tenant-admin-system"
-      className="h-screen overflow-hidden bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-600 selection:text-white"
+      className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-600 selection:text-white"
     >
       {/* TOP HEADER */}
-      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm z-40 shrink-0">
+      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm z-40 shrink-0 sticky top-0">
         <div className="flex items-center gap-3">
           <LogoSeusiteAlugado size="sm" theme="light" showSubtitle={false} />
           <div className="h-6 w-px bg-slate-200"></div>
@@ -1150,9 +1150,9 @@ export default function TenantAdminDashboard({
       </header>
 
       {/* BODY WITH SIDEBAR AND MAIN AREA */}
-      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row">
         {/* LEFTHAND NAVIGATION BAR */}
-        <aside className="w-full md:w-64 bg-white md:border-r border-slate-200 p-5 shrink-0 flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto shadow-sm z-30">
+        <aside className="w-full md:w-64 bg-white md:border-r border-slate-200 p-5 shrink-0 flex flex-row md:flex-col gap-1.5 overflow-x-auto shadow-sm z-30 md:sticky md:top-[73px] md:h-[calc(100vh-73px)] md:overflow-y-auto">
           <button
             onClick={() => setActiveTab("overview")}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${activeTab === "overview" ? "bg-indigo-50 text-indigo-700 border border-indigo-100/50 font-bold shadow-inner" : "text-slate-650 hover:bg-slate-50 hover:text-indigo-600"}`}
@@ -1303,7 +1303,7 @@ export default function TenantAdminDashboard({
         </aside>
 
         {/* WORKSPACE CONTENT AREA WITH TIER INTEGRITY */}
-        <main className="flex-1 p-6 overflow-y-auto space-y-6 relative">
+        <main className="flex-1 p-6 space-y-6 relative min-w-0">
           {/* TIER LOCK GENTLE BLOC OPERATOR */}
           {activeTab !== "overview" &&
             activeTab !== "settings" &&

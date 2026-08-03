@@ -28,7 +28,9 @@ import {
   Youtube,
   Twitter,
   Video,
-  Globe
+  Globe,
+  Mail,
+  Linkedin
 } from "lucide-react";
 import { Tenant, Service, Booking, ReviewItem } from "../types";
 
@@ -111,6 +113,18 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [bookingName, setBookingName] = useState("");
   const [bookingPhone, setBookingPhone] = useState("");
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
   const [bookingEmail, setBookingEmail] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -1369,103 +1383,186 @@ END:VCARD`;
 
       {/* OVERLAY MODAL: DIGITAL CARD */}
       {showDigitalCard && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="max-w-[260px] w-full bg-[#0a0b0e] border border-zinc-800/80 rounded-xl p-3 text-center text-white space-y-2 relative shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="max-w-[320px] w-full max-h-[85vh] overflow-y-auto bg-[#f8fafc] text-slate-800 rounded-2xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-300/80 my-auto pb-4 pt-1">
+            {/* Botão Fechar */}
             <button 
               onClick={() => setShowDigitalCard(false)}
-              className="absolute top-3 right-3 text-zinc-400 hover:text-white hover:bg-zinc-900 duration-150 w-6 h-6 rounded-full cursor-pointer flex items-center justify-center text-[10px] font-black border border-zinc-800/30"
+              className="absolute top-2.5 right-2.5 text-white bg-black/50 hover:bg-black/80 backdrop-blur-md duration-150 w-7 h-7 rounded-lg cursor-pointer flex items-center justify-center text-xs font-black z-30 transition-all border border-white/20 shadow-md"
             >
               ✕
             </button>
 
-            <span className="text-zinc-500 font-mono text-[8px] uppercase tracking-widest block font-bold">Cartão de Visita Digital</span>
-            
-            <div className="space-y-2 mt-1">
-              <div className="w-full h-20 overflow-hidden mx-auto bg-zinc-800 border-b border-indigo-500/20 shadow-md">
-                <img src={tenant.logoUrl} className="w-full h-full object-cover" alt="banner" />
-              </div>
-              
-              <div className="text-center">
-                <h4 className="font-extrabold text-base text-white">{tenant.name}</h4>
-                <p className="text-[9px] text-zinc-400 leading-relaxed px-2 mt-0.5 font-medium">{tenant.description.slice(0, 80)}...</p>
-                
-                {/* Colored social icons */}
-                <div className="flex justify-center gap-1 mt-2">
-                </div>
-              </div>
+            {/* Banner de Capa Principal do Site (Quadrado Levemente Arredondado no topo) */}
+            <div className="w-full h-24 relative bg-gradient-to-tr from-indigo-900 via-purple-900 to-slate-900 overflow-hidden rounded-t-xl">
+              <img 
+                src={tenant.bannerUrl || tenant.logoUrl} 
+                className="w-full h-full object-cover" 
+                alt="banner principal" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
             </div>
 
-            {/* Simulated QR Code using clear CSS boxes */}
-            <div className="bg-white p-1.5 rounded-lg w-24 h-24 mx-auto flex flex-col items-center justify-center border border-zinc-150 shadow-inner mt-2">
-              <QrCode size={60} className="text-neutral-950" />
-              <span className="text-[6px] text-neutral-400 font-mono mt-0.5 font-black tracking-widest">SCAN ME</span>
-            </div>
-
-            {/* Redes Sociais */}
-            <div className="mt-6">
-              <h4 className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest mb-2">Redes Sociais</h4>
-              <div className="flex justify-center gap-2">
-                  {Object.entries(tenant.socials).map(([platform, link]) => {
-                    if (!link || platform === 'whatsapp' || platform === 'phone' || platform === 'email') return null;
-                    
-                    let IconComp = Globe;
-                    let color = "text-zinc-400";
-                    if (platform === 'instagram') { IconComp = Instagram; color = "text-pink-500"; }
-                    else if (platform === 'facebook') { IconComp = Facebook; color = "text-blue-600"; }
-                    else if (platform === 'youtube') { IconComp = Youtube; color = "text-red-600"; }
-                    else if (platform === 'twitter') { IconComp = Twitter; color = "text-sky-400"; }
-                    else if (platform === 'tiktok') { IconComp = Video; color = "text-zinc-100"; }
-
-                    return (
-                      <a key={platform} href={link} target="_blank" rel="noreferrer" className={`p-1.5 bg-zinc-900 rounded-full hover:bg-zinc-800 transition-colors ${color}`}>
-                          <IconComp size={16} />
-                      </a>
-                    );
-                  })}
+            {/* Avatar Circular Sobreposto */}
+            <div className="relative -mt-9 flex justify-center z-10">
+              <div className="w-16 h-16 rounded-full p-0.5 bg-white shadow-lg border-2 border-white overflow-hidden flex items-center justify-center bg-slate-100">
+                <img 
+                  src={tenant.logoUrl} 
+                  className="w-full h-full object-cover rounded-full" 
+                  alt={tenant.name} 
+                />
               </div>
             </div>
 
-            <div className="space-y-3 text-xs pt-6">
-              {tenant.plan === 'basic' ? (
-                <button 
-                  onClick={downloadVCard}
-                  className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl cursor-pointer flex items-center justify-center gap-2 hover:opacity-95 transition-all text-xs border border-zinc-700"
+            {/* Nome do Site e Nome do Proprietário em Caixa Alta */}
+            <div className="text-center px-3 pt-1 pb-1">
+              <h3 className="font-extrabold text-sm text-slate-900 tracking-tight leading-tight">
+                {tenant.name}
+              </h3>
+              {tenant.ownerName && (
+                <p className="text-[10px] text-indigo-700 font-extrabold uppercase tracking-wider mt-0.5">
+                  {tenant.ownerName}
+                </p>
+              )}
+              <p className="text-[9px] text-slate-500 font-semibold mt-0.5">
+                {tenant.category || "Empresa / Serviços"}
+              </p>
+            </div>
+
+            {/* Bloco QR Code Acima de Quem Somos (Quadrado Levemente Arredondado rounded-xl) */}
+            <div className="px-3 py-1">
+              <div className="bg-white p-2.5 rounded-xl flex flex-col items-center justify-center border border-slate-200/80 shadow-sm max-w-[115px] mx-auto">
+                <QrCode size={58} className="text-slate-900" strokeWidth={1.75} />
+                <span className="text-[6px] text-slate-400 font-mono mt-1 font-extrabold tracking-widest uppercase">
+                  ESCANEIE O QR CODE
+                </span>
+              </div>
+            </div>
+
+            {/* Seção QUEM SOMOS / Descrição (Quadrado Levemente Arredondado rounded-xl) */}
+            {tenant.description && (
+              <div className="bg-white mx-3 mt-1 rounded-xl p-2.5 shadow-sm text-left border border-slate-200/80">
+                <h4 className="text-[9px] font-extrabold text-slate-800 tracking-tight uppercase">QUEM SOMOS</h4>
+                <p className="text-[9px] text-slate-600 leading-snug mt-0.5 font-medium line-clamp-3">
+                  {tenant.description}
+                </p>
+              </div>
+            )}
+
+            {/* Seção de Redes Sociais Cadastradas + Ícones de Contato (Sem E-mail, Sem Telefone Ligação, Sem Website) */}
+            <div className="px-3 pt-2.5 space-y-1.5">
+              <h4 className="text-[9px] font-extrabold text-slate-400 tracking-wider uppercase text-center mb-1">
+                REDES & CONTATOS
+              </h4>
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                {/* WhatsApp (Verde) */}
+                {(tenant.socials.whatsapp || tenant.socials.phone) && (
+                  <a
+                    href={`https://wa.me/${(tenant.socials.whatsapp || tenant.socials.phone || "").replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="WhatsApp"
+                    className="w-8 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                  >
+                    <MessageSquare size={14} />
+                  </a>
+                )}
+
+                {/* Localização / Mapa (Rosa/Vermelho) */}
+                {tenant.address && (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(tenant.address)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Endereço no Mapa"
+                    className="w-8 h-8 rounded-lg bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                  >
+                    <MapPin size={14} />
+                  </a>
+                )}
+
+                {/* Instagram (Exibido apenas se cadastrado) */}
+                {tenant.socials.instagram && (
+                  <a
+                    href={tenant.socials.instagram}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Instagram"
+                    className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                  >
+                    <Instagram size={14} />
+                  </a>
+                )}
+
+                {/* Facebook (Exibido apenas se cadastrado) */}
+                {tenant.socials.facebook && (
+                  <a
+                    href={tenant.socials.facebook}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Facebook"
+                    className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                  >
+                    <Facebook size={14} />
+                  </a>
+                )}
+
+                {/* Youtube (Exibido apenas se cadastrado) */}
+                {tenant.socials.youtube && (
+                  <a
+                    href={tenant.socials.youtube}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Youtube"
+                    className="w-8 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                  >
+                    <Youtube size={14} />
+                  </a>
+                )}
+
+                {/* Twitter (Exibido apenas se cadastrado) */}
+                {tenant.socials.twitter && (
+                  <a
+                    href={tenant.socials.twitter}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Twitter"
+                    className="w-8 h-8 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                  >
+                    <Twitter size={14} />
+                  </a>
+                )}
+
+                {/* ÍCONE COLORIDO 1: Baixar / Instalar App PWA do site no dispositivo ou baixar VCF */}
+                <button
+                  onClick={async () => {
+                    if (deferredPrompt) {
+                      deferredPrompt.prompt();
+                      const { outcome } = await deferredPrompt.userChoice;
+                      if (outcome === 'accepted') {
+                        setDeferredPrompt(null);
+                        return;
+                      }
+                    }
+                    downloadVCard();
+                  }}
+                  title="Baixar App PWA / Salvar Atalho na Área de Trabalho"
+                  className="w-8 h-8 rounded-lg bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105 cursor-pointer"
                 >
                   <Download size={14} />
-                  <span>Salvar Contato (.vcf)</span>
                 </button>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-1 px-2">
-                    <button 
-                      onClick={downloadVCard}
-                      className="py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl cursor-pointer flex items-center justify-center gap-1 transition-all text-[9px] border border-zinc-700"
-                    >
-                      <Download size={10} />
-                      <span>.vcf</span>
-                    </button>
-                    <button 
-                      onClick={() => alert("PDF download feature coming soon!")}
-                      className="py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl cursor-pointer flex items-center justify-center gap-1 transition-all text-[9px] border border-zinc-700"
-                    >
-                      <Download size={10} />
-                      <span>.pdf</span>
-                    </button>
-                    <a 
-                      href={`https://wa.me/${(tenant.socials.whatsapp || tenant.socials.phone || "").replace(/\D/g, "")}?text=${encodeURIComponent(`Confira o Cartão de Visita Digital de *${tenant.name}*: ${window.location.href}`)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl cursor-pointer flex items-center justify-center gap-1 transition-all text-[9px]"
-                    >
-                      <Share2 size={10} />
-                      <span>WhatsApp</span>
-                    </a>
-                  </div>
-                  <div className="text-[10px] text-zinc-500 mt-3 text-center">
-                    Acessar site: <a href={window.location.href} target="_blank" className="text-indigo-400 hover:underline">{window.location.hostname}{window.location.pathname}</a>
-                  </div>
-                </>
-              )}
+
+                {/* ÍCONE COLORIDO 2: Compartilhar no WhatsApp */}
+                <a
+                  href={`https://wa.me/${(tenant.socials.whatsapp || tenant.socials.phone || "").replace(/\D/g, "")}?text=${encodeURIComponent(`Confira o Cartão de Visita Digital de *${tenant.name}* (${tenant.ownerName ? tenant.ownerName.toUpperCase() : ""}): ${window.location.href}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Compartilhar Cartão no WhatsApp"
+                  className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                >
+                  <Share2 size={14} />
+                </a>
+              </div>
             </div>
           </div>
         </div>

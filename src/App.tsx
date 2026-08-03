@@ -124,9 +124,11 @@ export default function App() {
     const platformHosts = ["localhost", "seusitealugado.vercel.app", "127.0.0.1"];
     if (platformHosts.some(h => hostname === h || hostname.endsWith(".vercel.app"))) return;
 
-    // Busca tenant que possui esse customDomain configurado
+    const cleanHost = hostname.toLowerCase().replace(/^www\./, "");
+
+    // Busca tenant que possui esse customDomain configurado (compara com ou sem www)
     const tenantByDomain = tenants.find(
-      t => t.customDomain && t.customDomain.toLowerCase() === hostname.toLowerCase()
+      t => t.customDomain && t.customDomain.toLowerCase().replace(/^www\./, "") === cleanHost
     );
 
     if (tenantByDomain) {
