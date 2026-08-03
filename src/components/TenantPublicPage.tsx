@@ -143,51 +143,6 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
   const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const [showAccessDenied, setShowAccessDenied] = useState(false);
-  const [sharingCard, setSharingCard] = useState(false);
-
-  // Função para compartilhar o cartão utilizando a imagem pré-hospedada (cartão_visita.jpg)
-  const handleShareCard = async () => {
-    setSharingCard(true);
-
-    const cardUrl = window.location.href;
-    const shareText =
-      `Cartão de Visita Digital de ${tenant.name}${tenant.ownerName ? ` (${tenant.ownerName.toUpperCase()})` : ''}\n\n` +
-      `📌 ${tenant.category || 'Empresa / Serviços'}\n` +
-      `${tenant.address ? `📍 ${tenant.address}\n` : ''}` +
-      `${tenant.socials?.whatsapp ? `📲 WhatsApp:  ${tenant.socials.whatsapp}\n` : ''}` +
-      `\n🔗 Acesse o site: ${cardUrl}`;
-
-    // Usar o arquivo cartão_visita.jpg da pasta public (com URL absoluta para garantir no fetch)
-    const imageUrl = `${window.location.origin}/cart%C3%A3o_visita.jpg`;
-
-    try {
-      if (navigator.canShare) {
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `cartao-${tenant.slug || 'digital'}.jpg`, { type: 'image/jpeg' });
-
-        const shareData: ShareData = {
-          title: `Cartão Digital - ${tenant.name}`,
-          text: shareText,
-          files: [file],
-        };
-
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-        } else if (navigator.canShare({ text: shareText, url: cardUrl })) {
-          await navigator.share({ title: `Cartão Digital - ${tenant.name}`, text: shareText, url: cardUrl });
-        } else {
-          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-        }
-      } else {
-        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-      }
-    } catch {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-    } finally {
-      setSharingCard(false);
-    }
-  };
 
   // Mapping theme colors
   const colorMap: Record<string, { bg: string; text: string; bgHover: string; border: string; accent: string; badge: string; ring: string }> = {
@@ -1597,19 +1552,16 @@ END:VCARD`;
                   <Download size={14} />
                 </button>
 
-                {/* ÍCONE COLORIDO 2: Compartilhar Cartão como Imagem (Flyer) */}
-                <button
-                  onClick={handleShareCard}
-                  disabled={sharingCard}
-                  title={sharingCard ? "Gerando imagem..." : "Compartilhar Cartão como Imagem"}
-                  className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 disabled:opacity-60 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105 cursor-pointer"
+                {/* ÍCONE COLORIDO 2: Compartilhar no WhatsApp */}
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Confira o Cartão de Visita Digital de *${tenant.name}* (${tenant.ownerName ? tenant.ownerName.toUpperCase() : ""}): ${window.location.href}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Compartilhar Cartão no WhatsApp"
+                  className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
                 >
-                  {sharingCard ? (
-                    <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <Share2 size={14} />
-                  )}
-                </button>
+                  <Share2 size={14} />
+                </a>
               </div>
             </div>
           </div>
