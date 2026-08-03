@@ -666,50 +666,50 @@ END:VCARD`;
         <section className={contentColumnClass}>
           
           {/* Layout Tab selectors */}
-          <div className={`border-b ${tenant.slug === 'jkaturismo' ? 'border-zinc-200' : 'border-zinc-800'} flex gap-6 text-sm font-medium overflow-x-auto`}>
+          <div className={`border-b ${themeMode === 'dark' ? 'border-zinc-800' : 'border-zinc-200'} flex gap-6 text-sm font-medium overflow-x-auto`}>
             <button 
               onClick={() => setActiveTab('services')}
-              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'services' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'services' ? `${themeColors.text} font-bold` : (themeMode === 'dark' ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900')}`}
             >
               Serviços Disponíveis
-              {activeTab === 'services' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
+              {activeTab === 'services' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
             </button>
             <button 
               onClick={() => setActiveTab('reviews')}
-              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'reviews' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'reviews' ? `${themeColors.text} font-bold` : (themeMode === 'dark' ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900')}`}
             >
               Avaliações ({approvedReviews.length})
-              {activeTab === 'reviews' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
+              {activeTab === 'reviews' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
             </button>
             <button 
               onClick={() => setActiveTab('about')}
-              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'about' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'about' ? `${themeColors.text} font-bold` : (themeMode === 'dark' ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900')}`}
             >
               Receber Ofertas
-              {activeTab === 'about' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
+              {activeTab === 'about' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
             </button>
             <button 
               onClick={() => setActiveTab('products')}
-              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'products' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'products' ? `${themeColors.text} font-bold` : (themeMode === 'dark' ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900')}`}
             >
               Produtos à Venda
-              {activeTab === 'products' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
+              {activeTab === 'products' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
             </button>
             {tenant.socials?.instagram && (
               <button 
                 onClick={() => setActiveTab('instagram')}
-                className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'instagram' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
+                className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'instagram' ? `${themeColors.text} font-bold` : (themeMode === 'dark' ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900')}`}
               >
                 Instagram
-                {activeTab === 'instagram' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
+                {activeTab === 'instagram' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
               </button>
             )}
             <button 
               onClick={() => setActiveTab('contact')}
-              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'contact' ? (tenant.slug === 'jkaturismo' ? 'text-[#002b5b] font-bold' : `${themeColors.text} font-bold`) : (tenant.slug === 'jkaturismo' ? 'text-black hover:text-[#002b5b]' : 'text-zinc-400 hover:text-zinc-200')}`}
+              className={`pb-3 relative cursor-pointer whitespace-nowrap ${activeTab === 'contact' ? `${themeColors.text} font-bold` : (themeMode === 'dark' ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900')}`}
             >
               Fale Conosco
-              {activeTab === 'contact' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${tenant.slug === 'jkaturismo' ? 'bg-[#002b5b]' : themeColors.bg}`}></div>}
+              {activeTab === 'contact' && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeColors.bg}`}></div>}
             </button>
           </div>
 
@@ -725,13 +725,13 @@ END:VCARD`;
                       key={service.id}
                       className={serviceItemClass}
                     >
-                      <div className="flex gap-3">
+                      <div className="flex gap-4 items-center">
                         {service.imageUrl && (
-                          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-zinc-800 overflow-hidden shrink-0 shadow-md border border-zinc-700/50">
-                            <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover" />
+                          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl bg-zinc-800 overflow-hidden shrink-0 shadow-md border border-zinc-700/50">
+                            <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                           </div>
                         )}
-                        <div className="space-y-1 flex-1">
+                        <div className="space-y-1.5 flex-1 min-w-0">
                           <h3 className="font-bold text-sm line-clamp-1">{service.name}</h3>
                           <p className={`text-xs ${themeMode === 'dark' ? 'text-zinc-400' : 'text-neutral-500'} line-clamp-3`}>
                             {service.description}
@@ -744,10 +744,10 @@ END:VCARD`;
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 border-t border-zinc-850">
+                      <div className="flex items-center justify-between pt-2 border-t border-zinc-800/60">
                         <div className="space-y-0.5">
-                          {service.priceOnRequest ? (
-                            <span className={`font-bold ${tenant.slug === 'jkaturismo' ? 'text-emerald-500 text-xs' : 'text-amber-400 text-sm'}`}>Sob Consulta</span>
+                          {service.priceOnRequest || service.price === 0 ? (
+                            <span className="text-emerald-500 font-bold text-sm">Sob Consulta</span>
                           ) : (
                             <span className="text-emerald-500 font-bold text-sm">R$ {service.price.toFixed(2)}</span>
                           )}
