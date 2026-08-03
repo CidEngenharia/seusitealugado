@@ -28,9 +28,24 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [role, setRole] = useState<'superadmin' | 'tenantadmin' | null>(null);
   
+  // Função utilitária para buscar tenant por domínio personalizado (customDomain)
+  const getTenantByDomain = (tenantsList: Tenant[]) => {
+    const hostname = window.location.hostname;
+    const platformHosts = ["localhost", "seusitealugado.vercel.app", "127.0.0.1"];
+    if (platformHosts.some(h => hostname === h || hostname.endsWith(".vercel.app"))) return null;
+    const cleanHost = hostname.toLowerCase().replace(/^www\./, "");
+    return tenantsList.find(t => t.customDomain && t.customDomain.toLowerCase().replace(/^www\./, "") === cleanHost) || null;
+  };
+
+  const initialDomainTenant = getTenantByDomain(LOCAL_FALLBACK_TENANTS);
+
   // Custom SPA Client-Side States
-  const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'>('landing');
-  const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'>(
+    initialDomainTenant ? 'tenant-public' : 'landing'
+  );
+  const [activeSlug, setActiveSlug] = useState<string | null>(
+    initialDomainTenant ? initialDomainTenant.slug : null
+  );
 
   const updateBrowserPath = (path: string) => {
     const nextPath = path.startsWith("/") ? path : `/${path}`;
@@ -61,19 +76,18 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Restaurar sessão salva (persiste dentro da mesma aba/janela)
+    // Tentar restaurar sessão do sessionStorage
     try {
-      const saved = sessionStorage.getItem(SESSION_KEY);
-      if (saved) {
-        const session = JSON.parse(saved);
-        if (session.role) {
-          setRole(session.role);
-          if (session.role === 'superadmin') {
-            setCurrentView('super-admin');
-          } else if (session.role === 'tenantadmin' && session.slug) {
-            setActiveSlug(session.slug);
-            setCurrentView('tenant-admin');
-          }
+      const savedSession = sessionStorage.getItem(SESSION_KEY);
+      if (savedSession) {
+        const { role: savedRole, slug: savedSlug } = JSON.parse(savedSession);
+        if (savedRole === 'superadmin') {
+          setRole('superadmin');
+          setCurrentView('super-admin');
+        } else if (savedRole === 'tenantadmin' && savedSlug) {
+          setRole('tenantadmin');
+          setActiveSlug(savedSlug);
+          setCurrentView('tenant-admin');
         }
       }
     } catch {}
@@ -82,6 +96,14 @@ export default function App() {
 
     // Direct URL routing support para produção e hash URLs
     const handleClientRouting = () => {
+      // Se for domínio personalizado pago (ex: jkaturismo.com.br), força a exibição do tenant do domínio
+      const domainTenant = getTenantByDomain(tenants);
+      if (domainTenant) {
+        setActiveSlug(domainTenant.slug);
+        setCurrentView((current) => current === 'tenant-admin' ? current : 'tenant-public');
+        return;
+      }
+
       const hashPath = window.location.hash.startsWith("#/")
         ? window.location.hash.replace("#/", "")
         : "";
@@ -101,15 +123,6 @@ export default function App() {
           current === 'tenant-admin' ? current : 'tenant-public'
         );
       } else {
-        // Se a rota for raiz (""), verifica se o hostname é de um customDomain cadastrado antes de ir para landing
-        const host = window.location.hostname.toLowerCase().replace(/^www\./, "");
-        const platformHosts = ["localhost", "seusitealugado.vercel.app", "127.0.0.1"];
-        const isPlatform = platformHosts.some(h => host === h || host.endsWith(".vercel.app"));
-        
-        if (!isPlatform) {
-          // É um domínio próprio pago — deixa o efeito de customDomain assumir sem forçar 'landing'
-          return;
-        }
         setCurrentView('landing');
         setActiveSlug(null);
       }
@@ -124,25 +137,11 @@ export default function App() {
     };
   }, []);
 
-  // Detectar acesso por domínio personalizado (pago) — roda quando os tenants são carregados
+  // Detectar acesso por domínio personalizado quando os tenants forem atualizados
   useEffect(() => {
-    if (tenants.length === 0) return;
-
-    const hostname = window.location.hostname;
-    // Ignora domínios próprios da plataforma e localhost
-    const platformHosts = ["localhost", "seusitealugado.vercel.app", "127.0.0.1"];
-    if (platformHosts.some(h => hostname === h || hostname.endsWith(".vercel.app"))) return;
-
-    const cleanHost = hostname.toLowerCase().replace(/^www\./, "");
-
-    // Busca tenant que possui esse customDomain configurado (compara com ou sem www)
-    const tenantByDomain = tenants.find(
-      t => t.customDomain && t.customDomain.toLowerCase().replace(/^www\./, "") === cleanHost
-    );
-
-    if (tenantByDomain) {
-      // Acesso via domínio pago — carregar site do tenant diretamente
-      setActiveSlug(tenantByDomain.slug);
+    const domainTenant = getTenantByDomain(tenants);
+    if (domainTenant) {
+      setActiveSlug(domainTenant.slug);
       setCurrentView(prev => prev === 'tenant-admin' ? prev : 'tenant-public');
     }
   }, [tenants]);
