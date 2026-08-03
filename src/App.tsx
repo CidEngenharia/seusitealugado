@@ -101,6 +101,15 @@ export default function App() {
           current === 'tenant-admin' ? current : 'tenant-public'
         );
       } else {
+        // Se a rota for raiz (""), verifica se o hostname é de um customDomain cadastrado antes de ir para landing
+        const host = window.location.hostname.toLowerCase().replace(/^www\./, "");
+        const platformHosts = ["localhost", "seusitealugado.vercel.app", "127.0.0.1"];
+        const isPlatform = platformHosts.some(h => host === h || host.endsWith(".vercel.app"));
+        
+        if (!isPlatform) {
+          // É um domínio próprio pago — deixa o efeito de customDomain assumir sem forçar 'landing'
+          return;
+        }
         setCurrentView('landing');
         setActiveSlug(null);
       }
