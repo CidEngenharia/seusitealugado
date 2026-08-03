@@ -22,7 +22,7 @@ const RESERVED_ROUTES = new Set(["", "portfolio", "busca", "admin"]);
 const SESSION_KEY = "siteAlugado_session";
 
 export default function App() {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>(LOCAL_FALLBACK_TENANTS);
   const [loading, setLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
