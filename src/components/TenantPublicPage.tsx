@@ -145,52 +145,44 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
   const [showAccessDenied, setShowAccessDenied] = useState(false);
   const [sharingCard, setSharingCard] = useState(false);
 
-  // Função para compartilhar o cartão usando a imagem já hospedada do cliente
+  // Função para compartilhar o cartão utilizando a imagem pré-hospedada (cartão_visita.jpg)
   const handleShareCard = async () => {
     setSharingCard(true);
 
     const cardUrl = window.location.href;
     const shareText =
-      `✨ Cartão de Visita Digital de *${tenant.name}*` +
-      `${tenant.ownerName ? ` (${tenant.ownerName.toUpperCase()})` : ''}\n` +
-      `\n📌 ${tenant.category || 'Empresa / Serviços'}` +
-      `${tenant.address ? `\n📍 ${tenant.address}` : ''}` +
-      `${tenant.socials?.whatsapp ? `\n📲 WhatsApp: ${tenant.socials.whatsapp}` : ''}` +
-      `\n\n🔗 Acesse o site: ${cardUrl}`;
+      `Cartão de Visita Digital de ${tenant.name}${tenant.ownerName ? ` (${tenant.ownerName.toUpperCase()})` : ''}\n\n` +
+      `📌 ${tenant.category || 'Empresa / Serviços'}\n` +
+      `${tenant.address ? `📍 ${tenant.address}\n` : ''}` +
+      `${tenant.socials?.whatsapp ? `📲 WhatsApp:  ${tenant.socials.whatsapp}\n` : ''}` +
+      `\n🔗 Acesse o site: ${cardUrl}`;
 
-    // URL da imagem já hospedada: preferência ao bannerUrl, fallback ao logoUrl
-    const imageUrl = tenant.bannerUrl || tenant.logoUrl;
+    // Usar o arquivo cartão_visita.jpg da pasta public (com URL absoluta para garantir no fetch)
+    const imageUrl = `${window.location.origin}/cart%C3%A3o_visita.jpg`;
 
     try {
-      if (imageUrl && navigator.canShare) {
-        // Busca a imagem já hospedada
+      if (navigator.canShare) {
         const response = await fetch(imageUrl);
         const blob = await response.blob();
-        const ext = blob.type.includes('png') ? 'png' : 'jpg';
-        const file = new File([blob], `cartao-${tenant.slug || 'digital'}.${ext}`, { type: blob.type });
+        const file = new File([blob], `cartao-${tenant.slug || 'digital'}.jpg`, { type: 'image/jpeg' });
 
         const shareData: ShareData = {
-          title: `Cartão Digital — ${tenant.name}`,
+          title: `Cartão Digital - ${tenant.name}`,
           text: shareText,
           files: [file],
         };
 
         if (navigator.canShare(shareData)) {
-          // Mobile com suporte a compartilhamento de arquivos
           await navigator.share(shareData);
         } else if (navigator.canShare({ text: shareText, url: cardUrl })) {
-          // Fallback: compartilha apenas texto + url (sem imagem)
-          await navigator.share({ title: `Cartão Digital — ${tenant.name}`, text: shareText, url: cardUrl });
+          await navigator.share({ title: `Cartão Digital - ${tenant.name}`, text: shareText, url: cardUrl });
         } else {
-          // Fallback final: abre WhatsApp Web
           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
         }
       } else {
-        // Sem imagem ou Web Share API não disponível: abre WhatsApp
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
       }
     } catch {
-      // Usuário cancelou ou erro: fallback para WhatsApp
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
     } finally {
       setSharingCard(false);
