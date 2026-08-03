@@ -1,5 +1,56 @@
 [
   {
+    "id": "tenant-6",
+    "slug": "jkaturismo",
+    "name": "JKA TURISMO E TRANSLADO SALVADOR",
+    "ownerName": "JUAN CARLOS",
+    "ownerEmail": "contato@jkaturismo.com.br",
+    "logoUrl": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=150&auto=format&fit=crop&q=60",
+    "bannerUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=60",
+    "themeColor": "blue",
+    "themeMode": "light",
+    "fontFamily": "sans",
+    "template": "modern",
+    "description": "Oferecemos serviços de transporte turístico com conforto, segurança e pontualidade. Atendemos excursões, passeios, viagens, eventos, traslados para aeroportos, hotéis e destinos turísticos.",
+    "address": "Salvador - BA",
+    "openingHours": "Atendimento 24h",
+    "customDomain": "jkaturismo.com.br",
+    "socials": {
+      "whatsapp": "(71) 99999-8888",
+      "instagram": "@jkaturismo",
+      "phone": "(71) 99999-8888",
+      "email": "contato@jkaturismo.com.br"
+    },
+    "services": [
+      {
+        "id": "srv-6-1",
+        "name": "Translado Aeroporto de Salvador",
+        "description": "Transporte executivo e privativo do aeroporto até seu hotel ou destino em Salvador e Litoral Norte.",
+        "price": 150,
+        "duration": 60,
+        "imageUrl": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=150&auto=format&fit=crop&q=60"
+      }
+    ],
+    "crmClients": [],
+    "bookings": [],
+    "finance": {
+      "entries": [],
+      "payables": [],
+      "receivables": []
+    },
+    "inventory": [],
+    "fidelityProgram": {
+      "type": "points",
+      "rate": 5,
+      "rule": "Acumule pontos em seus traslados."
+    },
+    "marketingCampaigns": [],
+    "reviews": [],
+    "plan": "premium",
+    "status": "active",
+    "createdAt": "2026-08-01T10:00:00Z"
+  },
+  {
     "id": "tenant-5",
     "slug": "sallesfit",
     "name": "SallesFit",
