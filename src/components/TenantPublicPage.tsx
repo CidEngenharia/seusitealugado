@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from "react";
-import html2canvas from "html2canvas";
+import React, { useState, useEffect } from "react";
 import { 
   Phone, 
   MapPin, 
@@ -146,77 +145,54 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
   const [showAccessDenied, setShowAccessDenied] = useState(false);
   const [sharingCard, setSharingCard] = useState(false);
 
-  // Ref para captura do cartão de visita digital
-  const digitalCardRef = useRef<HTMLDivElement>(null);
-
-  // Função para capturar o cartão como imagem e compartilhar
+  // Função para compartilhar o cartão usando a imagem já hospedada do cliente
   const handleShareCard = async () => {
-    const cardEl = digitalCardRef.current;
-    if (!cardEl) return;
-
     setSharingCard(true);
+
+    const cardUrl = window.location.href;
+    const shareText =
+      `✨ Cartão de Visita Digital de *${tenant.name}*` +
+      `${tenant.ownerName ? ` (${tenant.ownerName.toUpperCase()})` : ''}\n` +
+      `\n📌 ${tenant.category || 'Empresa / Serviços'}` +
+      `${tenant.address ? `\n📍 ${tenant.address}` : ''}` +
+      `${tenant.socials?.whatsapp ? `\n📲 WhatsApp: ${tenant.socials.whatsapp}` : ''}` +
+      `\n\n🔗 Acesse o site: ${cardUrl}`;
+
+    // URL da imagem já hospedada: preferência ao bannerUrl, fallback ao logoUrl
+    const imageUrl = tenant.bannerUrl || tenant.logoUrl;
+
     try {
-      const canvas = await html2canvas(cardEl, {
-        backgroundColor: '#f8fafc',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-      });
+      if (imageUrl && navigator.canShare) {
+        // Busca a imagem já hospedada
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const ext = blob.type.includes('png') ? 'png' : 'jpg';
+        const file = new File([blob], `cartao-${tenant.slug || 'digital'}.${ext}`, { type: blob.type });
 
-      const slug = window.location.pathname.replace(/^\//,  '') || tenant.slug;
-      const cardUrl = window.location.href;
-      const shareText = `✨ Cartão de Visita Digital de *${tenant.name}*${tenant.ownerName ? ` (${tenant.ownerName.toUpperCase()})` : ''}\n\n📌 ${tenant.category || 'Empresa / Serviços'}\n\n🔗 Acesse: ${cardUrl}`;
+        const shareData: ShareData = {
+          title: `Cartão Digital — ${tenant.name}`,
+          text: shareText,
+          files: [file],
+        };
 
-      // Tenta compartilhar com imagem via Web Share API (suportado em mobile)
-      if (navigator.canShare) {
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            // fallback: apenas link
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-            setSharingCard(false);
-            return;
-          }
-          const file = new File([blob], `cartao-${tenant.slug || 'digital'}.png`, { type: 'image/png' });
-          const shareData: ShareData = {
-            title: `Cartão Digital - ${tenant.name}`,
-            text: shareText,
-            files: [file],
-          };
-          if (navigator.canShare(shareData)) {
-            try {
-              await navigator.share(shareData);
-            } catch {
-              // usuário cancelou
-            }
-          } else {
-            // Web Share sem suporte a files: fallback download + link
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `cartao-${tenant.slug || 'digital'}.png`;
-            a.click();
-            setTimeout(() => {
-              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-            }, 800);
-          }
-          setSharingCard(false);
-        }, 'image/png');
-      } else {
-        // Desktop ou browser sem Web Share API: baixa imagem + abre WhatsApp
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `cartao-${tenant.slug || 'digital'}.png`;
-            a.click();
-          }
-        }, 'image/png');
-        setTimeout(() => {
+        if (navigator.canShare(shareData)) {
+          // Mobile com suporte a compartilhamento de arquivos
+          await navigator.share(shareData);
+        } else if (navigator.canShare({ text: shareText, url: cardUrl })) {
+          // Fallback: compartilha apenas texto + url (sem imagem)
+          await navigator.share({ title: `Cartão Digital — ${tenant.name}`, text: shareText, url: cardUrl });
+        } else {
+          // Fallback final: abre WhatsApp Web
           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-        }, 800);
-        setSharingCard(false);
+        }
+      } else {
+        // Sem imagem ou Web Share API não disponível: abre WhatsApp
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
       }
     } catch {
+      // Usuário cancelou ou erro: fallback para WhatsApp
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+    } finally {
       setSharingCard(false);
     }
   };
@@ -1461,7 +1437,7 @@ END:VCARD`;
       {/* OVERLAY MODAL: DIGITAL CARD */}
       {showDigitalCard && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div ref={digitalCardRef} className="max-w-[320px] w-full max-h-[85vh] overflow-y-auto bg-[#f8fafc] text-slate-800 rounded-2xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-300/80 my-auto pb-4 pt-1">
+          <div className="max-w-[320px] w-full max-h-[85vh] overflow-y-auto bg-[#f8fafc] text-slate-800 rounded-2xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-300/80 my-auto pb-4 pt-1">
             {/* Botão Fechar */}
             <button 
               onClick={() => setShowDigitalCard(false)}
