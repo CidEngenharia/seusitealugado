@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import html2canvas from "html2canvas";
 import { 
   Phone, 
   MapPin, 
@@ -143,6 +144,82 @@ export default function TenantPublicPage({ tenant, onRefreshTenant, onEnterDashb
   const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const [showAccessDenied, setShowAccessDenied] = useState(false);
+  const [sharingCard, setSharingCard] = useState(false);
+
+  // Ref para captura do cartão de visita digital
+  const digitalCardRef = useRef<HTMLDivElement>(null);
+
+  // Função para capturar o cartão como imagem e compartilhar
+  const handleShareCard = async () => {
+    const cardEl = digitalCardRef.current;
+    if (!cardEl) return;
+
+    setSharingCard(true);
+    try {
+      const canvas = await html2canvas(cardEl, {
+        backgroundColor: '#f8fafc',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
+
+      const slug = window.location.pathname.replace(/^\//,  '') || tenant.slug;
+      const cardUrl = window.location.href;
+      const shareText = `✨ Cartão de Visita Digital de *${tenant.name}*${tenant.ownerName ? ` (${tenant.ownerName.toUpperCase()})` : ''}\n\n📌 ${tenant.category || 'Empresa / Serviços'}\n\n🔗 Acesse: ${cardUrl}`;
+
+      // Tenta compartilhar com imagem via Web Share API (suportado em mobile)
+      if (navigator.canShare) {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            // fallback: apenas link
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+            setSharingCard(false);
+            return;
+          }
+          const file = new File([blob], `cartao-${tenant.slug || 'digital'}.png`, { type: 'image/png' });
+          const shareData: ShareData = {
+            title: `Cartão Digital - ${tenant.name}`,
+            text: shareText,
+            files: [file],
+          };
+          if (navigator.canShare(shareData)) {
+            try {
+              await navigator.share(shareData);
+            } catch {
+              // usuário cancelou
+            }
+          } else {
+            // Web Share sem suporte a files: fallback download + link
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `cartao-${tenant.slug || 'digital'}.png`;
+            a.click();
+            setTimeout(() => {
+              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+            }, 800);
+          }
+          setSharingCard(false);
+        }, 'image/png');
+      } else {
+        // Desktop ou browser sem Web Share API: baixa imagem + abre WhatsApp
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `cartao-${tenant.slug || 'digital'}.png`;
+            a.click();
+          }
+        }, 'image/png');
+        setTimeout(() => {
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+        }, 800);
+        setSharingCard(false);
+      }
+    } catch {
+      setSharingCard(false);
+    }
+  };
 
   // Mapping theme colors
   const colorMap: Record<string, { bg: string; text: string; bgHover: string; border: string; accent: string; badge: string; ring: string }> = {
@@ -1384,7 +1461,7 @@ END:VCARD`;
       {/* OVERLAY MODAL: DIGITAL CARD */}
       {showDigitalCard && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="max-w-[320px] w-full max-h-[85vh] overflow-y-auto bg-[#f8fafc] text-slate-800 rounded-2xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-300/80 my-auto pb-4 pt-1">
+          <div ref={digitalCardRef} className="max-w-[320px] w-full max-h-[85vh] overflow-y-auto bg-[#f8fafc] text-slate-800 rounded-2xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-300/80 my-auto pb-4 pt-1">
             {/* Botão Fechar */}
             <button 
               onClick={() => setShowDigitalCard(false)}
@@ -1552,16 +1629,19 @@ END:VCARD`;
                   <Download size={14} />
                 </button>
 
-                {/* ÍCONE COLORIDO 2: Compartilhar no WhatsApp */}
-                <a
-                  href={`https://wa.me/${(tenant.socials.whatsapp || tenant.socials.phone || "").replace(/\D/g, "")}?text=${encodeURIComponent(`Confira o Cartão de Visita Digital de *${tenant.name}* (${tenant.ownerName ? tenant.ownerName.toUpperCase() : ""}): ${window.location.href}`)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Compartilhar Cartão no WhatsApp"
-                  className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105"
+                {/* ÍCONE COLORIDO 2: Compartilhar Cartão como Imagem (Flyer) */}
+                <button
+                  onClick={handleShareCard}
+                  disabled={sharingCard}
+                  title={sharingCard ? "Gerando imagem..." : "Compartilhar Cartão como Imagem"}
+                  className="w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-600 disabled:opacity-60 text-white flex items-center justify-center shadow-sm transition-all hover:scale-105 cursor-pointer"
                 >
-                  <Share2 size={14} />
-                </a>
+                  {sharingCard ? (
+                    <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Share2 size={14} />
+                  )}
+                </button>
               </div>
             </div>
           </div>
