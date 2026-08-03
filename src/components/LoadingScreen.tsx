@@ -60,10 +60,16 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
     };
   }, [duration, onComplete]);
 
-  // Círculo SVG de progresso
-  const RADIUS = 64;
+  // Círculo SVG de progresso ampliado
+  const RADIUS = 88;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
   const strokeDashoffset = CIRCUMFERENCE - (progress / 100) * CIRCUMFERENCE;
+
+  // Texto datilográfico ao redor do círculo
+  const FULL_TYPING_TEXT = "SEU SITE EM APENAS 20 SEG | ";
+  const totalChars = FULL_TYPING_TEXT.length;
+  const typedCount = Math.floor((progress / 100) * totalChars);
+  const currentTypedText = FULL_TYPING_TEXT.slice(0, typedCount);
 
   return (
     <div
@@ -79,7 +85,7 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(29,111,196,0.12) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(29,111,196,0.15) 0%, transparent 70%)",
           animation: "pulseGlow 3s ease-in-out infinite",
         }}
       />
@@ -103,75 +109,101 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
       ))}
 
       {/* Container central */}
-      <div className="relative flex flex-col items-center gap-8 z-10">
+      <div className="relative flex flex-col items-center gap-7 z-10">
 
-        {/* Anel de progresso SVG + Logo centralizada */}
+        {/* Anel de progresso SVG + Logo centralizada + Texto datilográfico circular */}
         <div className="relative flex items-center justify-center">
 
-          {/* Anel externo — rotação lenta decorativa */}
+          {/* Anel externo decorativo em rotação lenta */}
           <svg
-            width={180}
-            height={180}
+            width={260}
+            height={260}
             className="absolute"
-            style={{ animation: "spinSlow 8s linear infinite" }}
+            style={{ animation: "spinSlow 12s linear infinite" }}
           >
             <circle
-              cx={90}
-              cy={90}
-              r={82}
+              cx={130}
+              cy={130}
+              r={120}
               fill="none"
-              stroke="rgba(29,111,196,0.12)"
-              strokeWidth={2}
-              strokeDasharray="6 10"
+              stroke="rgba(29,111,196,0.15)"
+              strokeWidth={1.5}
+              strokeDasharray="6 12"
             />
           </svg>
 
-          {/* Anel de progresso principal */}
-          <svg width={180} height={180} style={{ transform: "rotate(-90deg)" }}>
-            {/* Track */}
-            <circle
-              cx={90}
-              cy={90}
-              r={RADIUS}
-              fill="none"
-              stroke="rgba(255,255,255,0.06)"
-              strokeWidth={6}
-            />
-            {/* Fill animado */}
-            <circle
-              cx={90}
-              cy={90}
-              r={RADIUS}
-              fill="none"
-              stroke="url(#progressGrad)"
-              strokeWidth={6}
-              strokeLinecap="round"
-              strokeDasharray={CIRCUMFERENCE}
-              strokeDashoffset={strokeDashoffset}
-              style={{ transition: "stroke-dashoffset 0.15s ease" }}
-            />
+          {/* SVG Principal do Progresso e Texto Datilográfico em Curva */}
+          <svg width={260} height={260} className="relative overflow-visible">
             <defs>
               <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#1d6fc4" />
                 <stop offset="50%" stopColor="#3b82f6" />
                 <stop offset="100%" stopColor="#facc15" />
               </linearGradient>
+              {/* Caminho circular para o texto em volta do círculo */}
+              <path
+                id="circleTextPath"
+                d="M 130, 130 m -108, 0 a 108,108 0 1,1 216,0 a 108,108 0 1,1 -216,0"
+              />
             </defs>
+
+            {/* Texto datilográfico de máquina de escrever circular */}
+            <text
+              fill="#facc15"
+              style={{
+                fontFamily: "'Courier Prime', 'Courier New', monospace",
+                fontSize: "12px",
+                letterSpacing: "0.18em",
+                textShadow: "0 0 8px rgba(250,204,21,0.5)",
+              }}
+            >
+              <textPath href="#circleTextPath" startOffset="0%">
+                {currentTypedText}
+                {progress < 100 && (
+                  <tspan style={{ animation: "blinkCursor 0.5s infinite" }}>|</tspan>
+                )}
+              </textPath>
+            </text>
+
+            {/* Círculo de trilho de progresso */}
+            <g style={{ transform: "rotate(-90deg)", transformOrigin: "130px 130px" }}>
+              <circle
+                cx={130}
+                cy={130}
+                r={RADIUS}
+                fill="none"
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth={7}
+              />
+              {/* Círculo preenchido de progresso */}
+              <circle
+                cx={130}
+                cy={130}
+                r={RADIUS}
+                fill="none"
+                stroke="url(#progressGrad)"
+                strokeWidth={7}
+                strokeLinecap="round"
+                strokeDasharray={CIRCUMFERENCE}
+                strokeDashoffset={strokeDashoffset}
+                style={{ transition: "stroke-dashoffset 0.15s ease" }}
+              />
+            </g>
           </svg>
 
           {/* Anel interno girando oposto */}
           <svg
-            width={130}
-            height={130}
+            width={150}
+            height={150}
             className="absolute"
-            style={{ animation: "spinSlow 5s linear infinite reverse" }}
+            style={{ animation: "spinSlow 6s linear infinite reverse" }}
           >
             <circle
-              cx={65}
-              cy={65}
-              r={58}
+              cx={75}
+              cy={75}
+              r={68}
               fill="none"
-              stroke="rgba(250,204,21,0.1)"
+              stroke="rgba(250,204,21,0.12)"
               strokeWidth={1.5}
               strokeDasharray="4 14"
             />
@@ -179,11 +211,11 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
 
           {/* Logo e percentual centralizados */}
           <div className="absolute flex flex-col items-center justify-center gap-1">
-            <LogoSeusiteAlugado size="sm" />
+            <LogoSeusiteAlugado size="md" />
             <span
               style={{
                 fontFamily: "'Inter', sans-serif",
-                fontSize: "20px",
+                fontSize: "24px",
                 fontWeight: 800,
                 background: "linear-gradient(90deg, #3b82f6, #facc15)",
                 WebkitBackgroundClip: "text",
@@ -197,13 +229,13 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
         </div>
 
         {/* Frase animada */}
-        <div className="text-center min-h-[40px] flex flex-col items-center gap-1 px-6">
+        <div className="text-center min-h-[36px] flex flex-col items-center justify-center px-6">
           <p
             key={phraseIdx}
             style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: "13px",
-              color: "rgba(255,255,255,0.7)",
+              fontSize: "14px",
+              color: "rgba(255,255,255,0.75)",
               animation: "fadeSlideIn 0.4s ease forwards",
               letterSpacing: "0.01em",
             }}
@@ -215,8 +247,8 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
         {/* Barra de progresso linear */}
         <div
           style={{
-            width: "220px",
-            height: "3px",
+            width: "240px",
+            height: "4px",
             backgroundColor: "rgba(255,255,255,0.07)",
             borderRadius: "99px",
             overflow: "hidden",
@@ -229,7 +261,7 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
               background: "linear-gradient(90deg, #1d6fc4, #3b82f6, #facc15)",
               borderRadius: "99px",
               transition: "width 0.15s ease",
-              boxShadow: "0 0 8px rgba(59,130,246,0.6)",
+              boxShadow: "0 0 10px rgba(59,130,246,0.7)",
             }}
           />
         </div>
@@ -238,8 +270,8 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
         <p
           style={{
             fontFamily: "monospace",
-            fontSize: "10px",
-            color: "rgba(255,255,255,0.2)",
+            fontSize: "11px",
+            color: "rgba(255,255,255,0.25)",
             letterSpacing: "0.08em",
           }}
         >
@@ -263,6 +295,10 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
         @keyframes fadeSlideIn {
           from { opacity: 0; transform: translateY(6px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes blinkCursor {
+          0%, 100% { opacity: 1; }
+          50%      { opacity: 0; }
         }
       `}</style>
     </div>
