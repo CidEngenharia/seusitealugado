@@ -141,22 +141,22 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
                 <stop offset="50%" stopColor="#3b82f6" />
                 <stop offset="100%" stopColor="#facc15" />
               </linearGradient>
-              {/* Caminho circular iniciando no topo para distribuição equilibrada do arco */}
+              {/* Caminho em arco no topo do círculo (de 9h a 3h por cima) */}
               <path
                 id="circleTextPath"
-                d="M 140, 22 A 118,118 0 1,1 139.9,22"
+                d="M 22, 140 A 118,118 0 0,1 258,140"
               />
             </defs>
 
-            {/* Texto datilográfico de máquina de escrever circular */}
+            {/* Texto datilográfico de máquina de escrever circular na parte superior */}
             <text
               fill="#facc15"
               style={{
                 fontFamily: "'Courier Prime', 'Courier New', monospace",
-                fontSize: "11px",
+                fontSize: "11.5px",
                 fontWeight: 700,
-                letterSpacing: "0.14em",
-                textShadow: "0 0 8px rgba(250,204,21,0.6)",
+                letterSpacing: "0.15em",
+                textShadow: "0 0 10px rgba(250,204,21,0.7)",
               }}
             >
               <textPath href="#circleTextPath" startOffset="50%" textAnchor="middle">
