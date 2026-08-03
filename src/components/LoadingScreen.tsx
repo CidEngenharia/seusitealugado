@@ -66,9 +66,10 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
   const strokeDashoffset = CIRCUMFERENCE - (progress / 100) * CIRCUMFERENCE;
 
   // Texto datilográfico ao redor do círculo
-  const FULL_TYPING_TEXT = "SEU SITE EM APENAS 20 SEG | ";
+  const FULL_TYPING_TEXT = "SEU SITE EM APENAS 20 SEGUNDOS";
   const totalChars = FULL_TYPING_TEXT.length;
-  const typedCount = Math.floor((progress / 100) * totalChars);
+  // Garante que em 0% digite ao menos a primeira letra e em 100% a frase completa
+  const typedCount = Math.min(totalChars, Math.max(0, Math.ceil((progress / 100) * totalChars)));
   const currentTypedText = FULL_TYPING_TEXT.slice(0, typedCount);
 
   return (
@@ -116,15 +117,15 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
 
           {/* Anel externo decorativo em rotação lenta */}
           <svg
-            width={260}
-            height={260}
+            width={280}
+            height={280}
             className="absolute"
             style={{ animation: "spinSlow 12s linear infinite" }}
           >
             <circle
-              cx={130}
-              cy={130}
-              r={120}
+              cx={140}
+              cy={140}
+              r={130}
               fill="none"
               stroke="rgba(29,111,196,0.15)"
               strokeWidth={1.5}
@@ -133,17 +134,17 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
           </svg>
 
           {/* SVG Principal do Progresso e Texto Datilográfico em Curva */}
-          <svg width={260} height={260} className="relative overflow-visible">
+          <svg width={280} height={280} className="relative overflow-visible">
             <defs>
               <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#1d6fc4" />
                 <stop offset="50%" stopColor="#3b82f6" />
                 <stop offset="100%" stopColor="#facc15" />
               </linearGradient>
-              {/* Caminho circular para o texto em volta do círculo */}
+              {/* Caminho circular iniciando no topo para distribuição equilibrada do arco */}
               <path
                 id="circleTextPath"
-                d="M 130, 130 m -108, 0 a 108,108 0 1,1 216,0 a 108,108 0 1,1 -216,0"
+                d="M 140, 22 A 118,118 0 1,1 139.9,22"
               />
             </defs>
 
@@ -152,24 +153,25 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
               fill="#facc15"
               style={{
                 fontFamily: "'Courier Prime', 'Courier New', monospace",
-                fontSize: "12px",
-                letterSpacing: "0.18em",
-                textShadow: "0 0 8px rgba(250,204,21,0.5)",
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.14em",
+                textShadow: "0 0 8px rgba(250,204,21,0.6)",
               }}
             >
-              <textPath href="#circleTextPath" startOffset="0%">
+              <textPath href="#circleTextPath" startOffset="50%" textAnchor="middle">
                 {currentTypedText}
                 {progress < 100 && (
-                  <tspan style={{ animation: "blinkCursor 0.5s infinite" }}>|</tspan>
+                  <tspan style={{ animation: "blinkCursor 0.4s infinite" }}>|</tspan>
                 )}
               </textPath>
             </text>
 
             {/* Círculo de trilho de progresso */}
-            <g style={{ transform: "rotate(-90deg)", transformOrigin: "130px 130px" }}>
+            <g style={{ transform: "rotate(-90deg)", transformOrigin: "140px 140px" }}>
               <circle
-                cx={130}
-                cy={130}
+                cx={140}
+                cy={140}
                 r={RADIUS}
                 fill="none"
                 stroke="rgba(255,255,255,0.06)"
@@ -177,8 +179,8 @@ export default function LoadingScreen({ onComplete, duration = 4 }: LoadingScree
               />
               {/* Círculo preenchido de progresso */}
               <circle
-                cx={130}
-                cy={130}
+                cx={140}
+                cy={140}
                 r={RADIUS}
                 fill="none"
                 stroke="url(#progressGrad)"
