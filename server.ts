@@ -283,6 +283,9 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
     }
   }
 
+  // Garantir que o ID retornado seja propagado para updatedTenant
+  updatedTenant.id = tenantId;
+
   const validFontFamilies = ["sans", "serif", "mono"];
   const validTemplates = ["classic", "modern", "minimal"];
 

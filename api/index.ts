@@ -133,6 +133,8 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
     }
   }
 
+  updatedTenant.id = tenantId;
+
   const validFontFamilies = ["sans", "serif", "mono"];
   const validTemplates = ["classic", "modern", "minimal"];
 

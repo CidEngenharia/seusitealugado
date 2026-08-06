@@ -1012,15 +1012,8 @@ END:VCARD`;
                   
                   {(() => {
                     const customPhotos = (tenant as any).instagramPhotos?.filter((u: string) => u && u.trim()) || [];
-                    const placeholderPhotos = [
-                      'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&h=300&fit=crop',
-                      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=300&fit=crop',
-                      'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=300&h=300&fit=crop',
-                      'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=300&h=300&fit=crop',
-                      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=300&h=300&fit=crop',
-                      'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=300&fit=crop',
-                    ];
-                    const photos = customPhotos.length > 0 ? customPhotos : placeholderPhotos;
+                    const photos = customPhotos.length > 0 ? customPhotos : [];
+                    if (photos.length === 0) return null;
                     return (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                         {photos.slice(0, 6).map((src: string, i: number) => {
