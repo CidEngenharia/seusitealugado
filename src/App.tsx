@@ -117,15 +117,6 @@ export default function App() {
         setCurrentView('busca');
         setActiveSlug(null);
       } else if (!RESERVED_ROUTES.has(route)) {
-        // Verificar se o tenant com esse slug tem domínio personalizado → redirecionar
-        const slugTenant = tenants.find(t => t.slug === route);
-        if (slugTenant && slugTenant.customDomain) {
-          const targetDomain = slugTenant.customDomain.toLowerCase().startsWith('http')
-            ? slugTenant.customDomain
-            : `https://${slugTenant.customDomain}`;
-          window.location.replace(targetDomain);
-          return;
-        }
         setActiveSlug(route);
         // Só vai para public se não estiver no painel admin da mesma slug
         setCurrentView((current) => 
@@ -148,30 +139,10 @@ export default function App() {
 
   // Detectar acesso por domínio personalizado quando os tenants forem atualizados
   useEffect(() => {
-    // 1. Acesso via domínio personalizado (ex: jkaturismo.com.br)
     const domainTenant = getTenantByDomain(tenants);
     if (domainTenant) {
       setActiveSlug(domainTenant.slug);
       setCurrentView(prev => prev === 'tenant-admin' ? prev : 'tenant-public');
-      return;
-    }
-
-    // 2. Acesso via slug da plataforma (ex: seusitealugado.vercel.app/jkaturismo)
-    // Se o tenant desse slug tem customDomain, redirecionar para ele
-    const hostname = window.location.hostname;
-    const platformHosts = ["localhost", "seusitealugado.vercel.app", "127.0.0.1"];
-    const isOnPlatform = platformHosts.some(h => hostname === h || hostname.endsWith('.vercel.app')) || hostname.includes('localhost');
-    if (isOnPlatform) {
-      const pathSlug = window.location.pathname.replace(/^\/+|\/+$/g, '');
-      if (pathSlug && !RESERVED_ROUTES.has(pathSlug)) {
-        const slugTenant = tenants.find(t => t.slug === pathSlug);
-        if (slugTenant && slugTenant.customDomain) {
-          const targetDomain = slugTenant.customDomain.toLowerCase().startsWith('http')
-            ? slugTenant.customDomain
-            : `https://${slugTenant.customDomain}`;
-          window.location.replace(targetDomain);
-        }
-      }
     }
   }, [tenants]);
 

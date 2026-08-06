@@ -460,6 +460,16 @@ export default function TenantAdminDashboard({
   const [isCompressingBanner, setIsCompressingBanner] = useState(false);
   const [isSavingSiteSettings, setIsSavingSiteSettings] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState<Tenant>(tenant);
+
+  // Sistema de Toast — feedback visual de salvamento
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (type: 'success' | 'error' | 'warning', message: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ type, message });
+    toastTimerRef.current = setTimeout(() => setToast(null), 4500);
+  };
   // Rastreia qual tenant está aberto — só sincroniza o rascunho quando TROCA de tenant
   const lastTenantIdRef = useRef<string>(tenant.id);
 
@@ -554,22 +564,25 @@ export default function TenantAdminDashboard({
         body: JSON.stringify(updated),
       });
       if (response.ok) {
-        onTenantUpdated(updated); // atualiza estado global no App.tsx
-        // Atualiza a ref do ID para evitar que o useEffect resete o rascunho
-        lastTenantIdRef.current = updated.id;
-        setSettingsDraft(updated); // sincroniza o rascunho com o estado salvo
-      } else {
-        const err = await response.text();
-        console.warn("API retornou erro ao salvar:", err);
-        onTenantUpdated(updated); // aplica localmente mesmo assim
+        onTenantUpdated(updated);
         lastTenantIdRef.current = updated.id;
         setSettingsDraft(updated);
+        showToast('success', 'Alterações salvas com sucesso!');
+      } else {
+        let errMsg = `Erro ${response.status}`;
+        try { const body = await response.json(); errMsg = body.details || body.error || errMsg; } catch {}
+        console.warn("API retornou erro ao salvar:", errMsg);
+        onTenantUpdated(updated);
+        lastTenantIdRef.current = updated.id;
+        setSettingsDraft(updated);
+        showToast('warning', `Salvo localmente, mas o servidor retornou um erro: ${errMsg}`);
       }
     } catch (e) {
       console.error("Falha de rede ao salvar tenant:", e);
-      onTenantUpdated(updated); // aplica localmente
+      onTenantUpdated(updated);
       lastTenantIdRef.current = updated.id;
       setSettingsDraft(updated);
+      showToast('error', 'Falha de conexão: as alterações não foram salvas no servidor. Verifique se o servidor está rodando e tente novamente.');
     }
   };
 
@@ -1118,6 +1131,31 @@ export default function TenantAdminDashboard({
       id="tenant-admin-system"
       className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-600 selection:text-white"
     >
+      {/* TOAST DE FEEDBACK DE SALVAMENTO */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-[9999] flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl text-sm max-w-sm border transition-all duration-300 animate-fade-in ${
+            toast.type === 'success'
+              ? 'bg-emerald-600 border-emerald-500 text-white'
+              : toast.type === 'warning'
+              ? 'bg-amber-500 border-amber-400 text-white'
+              : 'bg-red-600 border-red-500 text-white'
+          }`}
+          role="alert"
+        >
+          <span className="mt-0.5 shrink-0 text-base">
+            {toast.type === 'success' ? '✅' : toast.type === 'warning' ? '⚠️' : '❌'}
+          </span>
+          <p className="flex-1 leading-snug">{toast.message}</p>
+          <button
+            onClick={() => setToast(null)}
+            className="shrink-0 opacity-70 hover:opacity-100 transition-opacity text-white font-bold text-base leading-none mt-0.5"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {/* TOP HEADER */}
       <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm z-40 shrink-0 sticky top-0">
         <div className="flex items-center gap-3">

@@ -1637,6 +1637,746 @@ app.post("/api/market-radar/sync-cron", async (req, res) => {
 });
 
 // ============================================================
+// ============================================================
+// RADAR DE OPORTUNIDADES — Motor de Auditoria de Websites
+// Módulo Admin Exclusivo | Apenas informações públicas
+// ============================================================
+
+import * as dns from "dns";
+import * as tls from "tls";
+import * as net from "net";
+import { load as cheerioLoad } from "cheerio";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
+
+// Mapas de categorias OSM para busca de empresas
+const RADAR_OSM_TAGS: Record<string, string[]> = {
+  "restaurante":  ['"amenity"="restaurant"', '"amenity"="fast_food"', '"amenity"="cafe"'],
+  "barbearia":    ['"shop"="barber"', '"shop"="hairdresser"'],
+  "salao":        ['"shop"="hairdresser"', '"shop"="beauty"'],
+  "dentista":     ['"amenity"="dentist"'],
+  "clinica":      ['"amenity"="clinic"', '"amenity"="doctors"'],
+  "mercado":      ['"shop"="supermarket"', '"shop"="convenience"', '"shop"="grocery"'],
+  "farmacia":     ['"amenity"="pharmacy"'],
+  "academia":     ['"leisure"="fitness_centre"'],
+  "hotel":        ['"tourism"="hotel"', '"tourism"="motel"'],
+  "oficina":      ['"shop"="car_repair"', '"craft"="car_repair"'],
+  "padaria":      ['"shop"="bakery"'],
+  "petshop":      ['"shop"="pet"', '"amenity"="veterinary"'],
+  "advocacia":    ['"office"="lawyer"'],
+  "contabilidade":['"office"="accountant"'],
+  "escola":       ['"amenity"="school"', '"amenity"="language_school"'],
+  "geral":        ['"shop"~"."', '"amenity"~"."', '"office"~"."'],
+};
+
+// Coordenadas fallback para cidades brasileiras comuns
+const BR_CITY_COORDS: Record<string, { lat: number; lon: number }> = {
+  "salvador":           { lat: -12.9704, lon: -38.5089 },
+  "sao paulo":          { lat: -23.5505, lon: -46.6333 },
+  "rio de janeiro":     { lat: -22.9068, lon: -43.1729 },
+  "belo horizonte":     { lat: -19.9167, lon: -43.9345 },
+  "fortaleza":          { lat: -3.7275,  lon: -38.5275 },
+  "recife":             { lat: -8.0539,  lon: -34.8811 },
+  "porto alegre":       { lat: -30.0346, lon: -51.2177 },
+  "curitiba":           { lat: -25.4290, lon: -49.2671 },
+  "manaus":             { lat: -3.1190,  lon: -60.0217 },
+  "brasilia":           { lat: -15.7801, lon: -47.9292 },
+  "lauro de freitas":   { lat: -12.8944, lon: -38.3275 },
+  "camaçari":           { lat: -12.6994, lon: -38.3239 },
+  "feira de santana":   { lat: -12.2664, lon: -38.9663 },
+};
+
+// Mapper: OSM node → RadarCompany
+function mapOsmToCompany(node: any): any {
+  const t = node.tags || {};
+  const name = t.name || t["name:pt"] || "";
+  if (!name) return null;
+  return {
+    osmId: String(node.id),
+    name,
+    category: t.amenity || t.shop || t.tourism || t.leisure || t.office || t.craft || "empresa",
+    phone: t.phone || t["contact:phone"] || "",
+    website: t.website || t["contact:website"] || "",
+    email: t.email || t["contact:email"] || "",
+    instagram: t["contact:instagram"] || "",
+    facebook: t["contact:facebook"] || "",
+    address: [t["addr:street"], t["addr:housenumber"], t["addr:suburb"]].filter(Boolean).join(", "),
+    city: t["addr:city"] || "",
+    state: t["addr:state"] || "",
+    latitude: node.lat,
+    longitude: node.lon,
+  };
+}
+
+// Módulo 1: Verificar disponibilidade do site
+async function auditAvailability(url: string): Promise<any> {
+  const start = Date.now();
+  let isOnline = false;
+  let hasHttps = url.startsWith("https");
+  let sslValid = false;
+  let sslExpiryDays = 0;
+  let redirectCount = 0;
+  let responseTimeMs = 0;
+  let dnsResolves = false;
+  const issues: any[] = [];
+
+  try {
+    // Verificar DNS
+    const hostname = new URL(url).hostname;
+    await dns.promises.resolve(hostname);
+    dnsResolves = true;
+
+    // Verificar SSL se HTTPS
+    if (hasHttps) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const socket = tls.connect({ host: hostname, port: 443, servername: hostname }, () => {
+            const cert = socket.getPeerCertificate();
+            if (cert && cert.valid_to) {
+              const expiry = new Date(cert.valid_to);
+              sslExpiryDays = Math.floor((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              sslValid = sslExpiryDays > 0;
+              if (sslExpiryDays < 30) issues.push({ module: "availability", severity: "warning", title: "SSL próximo do vencimento", description: `Certificado expira em ${sslExpiryDays} dias.` });
+            }
+            socket.destroy();
+            resolve();
+          });
+          socket.on("error", reject);
+          socket.setTimeout(8000, () => { socket.destroy(); reject(new Error("timeout")); });
+        });
+      } catch { sslValid = false; issues.push({ module: "availability", severity: "critical", title: "SSL inválido", description: "Certificado SSL inválido ou inacessível." }); }
+    }
+
+    // Fetch com timeout
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; SiteAlugadoRadar/1.0)" }
+    });
+    clearTimeout(timer);
+    responseTimeMs = Date.now() - start;
+    isOnline = resp.ok || resp.status < 500;
+
+    if (responseTimeMs > 4000) issues.push({ module: "performance", severity: "warning", title: "Site lento", description: `Tempo de resposta: ${responseTimeMs}ms (ideal: < 2000ms).` });
+    if (!hasHttps) issues.push({ module: "security", severity: "critical", title: "Sem HTTPS", description: "O site não usa criptografia HTTPS." });
+
+    return { isOnline, hasHttps, sslValid, sslExpiryDays, responseTimeMs, dnsResolves, redirectCount, issues };
+  } catch (e: any) {
+    return { isOnline: false, hasHttps, sslValid: false, sslExpiryDays: 0, responseTimeMs: Date.now() - start, dnsResolves, redirectCount: 0,
+      issues: [{ module: "availability", severity: "critical", title: "Site inacessível", description: e.message || "Não foi possível conectar ao site." }] };
+  }
+}
+
+// Módulo 2: Auditoria de SEO via Cheerio
+async function auditSeo(url: string, html: string): Promise<{ data: any; issues: any[] }> {
+  const $ = cheerioLoad(html);
+  const issues: any[] = [];
+
+  const title = $("title").first().text().trim();
+  const metaDesc = $('meta[name="description"]').attr("content") || "";
+  const canonical = $('link[rel="canonical"]').attr("href") || "";
+  const h1s = $("h1");
+  const hasOg = !!$('meta[property="og:title"]').attr("content");
+  const hasTwitter = !!$('meta[name="twitter:card"]').attr("content");
+  const hasSchema = html.includes("application/ld+json");
+  const imagesMissingAlt = $("img").filter((_, el) => !$(el).attr("alt")).length;
+  const internalLinks = $("a[href]").filter((_, el) => { const h = $(el).attr("href") || ""; return h.startsWith("/") || h.includes(new URL(url).hostname); }).length;
+  const externalLinks = $("a[href]").filter((_, el) => { const h = $(el).attr("href") || ""; return h.startsWith("http") && !h.includes(new URL(url).hostname); }).length;
+
+  // Checar arquivos externos
+  let hasRobotsTxt = false, hasSitemap = false, hasFavicon = false;
+  try {
+    const rResp = await fetch(`${new URL(url).origin}/robots.txt`, { signal: AbortSignal.timeout(5000) });
+    hasRobotsTxt = rResp.ok;
+  } catch {}
+  try {
+    const sResp = await fetch(`${new URL(url).origin}/sitemap.xml`, { signal: AbortSignal.timeout(5000) });
+    hasSitemap = sResp.ok;
+  } catch {}
+  try {
+    const fResp = await fetch(`${new URL(url).origin}/favicon.ico`, { signal: AbortSignal.timeout(5000) });
+    hasFavicon = fResp.ok;
+  } catch {}
+
+  if (!title) issues.push({ module: "seo", severity: "critical", title: "Sem título", description: "Página sem tag <title>." });
+  else if (title.length < 30 || title.length > 60) issues.push({ module: "seo", severity: "warning", title: "Título fora do tamanho ideal", description: `Título com ${title.length} caracteres (ideal: 30-60).` });
+  if (!metaDesc) issues.push({ module: "seo", severity: "critical", title: "Sem meta description", description: "Nenhuma meta description encontrada." });
+  if (h1s.length === 0) issues.push({ module: "seo", severity: "critical", title: "Sem H1", description: "Página sem heading H1." });
+  if (h1s.length > 1) issues.push({ module: "seo", severity: "warning", title: "Múltiplos H1", description: `Encontrados ${h1s.length} H1s. Deve haver apenas um.` });
+  if (!canonical) issues.push({ module: "seo", severity: "warning", title: "Sem canonical", description: "Tag canonical ausente." });
+  if (!hasRobotsTxt) issues.push({ module: "seo", severity: "warning", title: "Sem robots.txt", description: "Arquivo robots.txt não encontrado." });
+  if (!hasSitemap) issues.push({ module: "seo", severity: "warning", title: "Sem sitemap.xml", description: "Sitemap XML não encontrado." });
+  if (!hasOg) issues.push({ module: "seo", severity: "info", title: "Sem Open Graph", description: "Meta tags Open Graph ausentes (importante para compartilhamento)." });
+  if (!hasTwitter) issues.push({ module: "seo", severity: "info", title: "Sem Twitter Card", description: "Meta tags Twitter Card ausentes." });
+  if (imagesMissingAlt > 0) issues.push({ module: "seo", severity: "warning", title: "Imagens sem alt", description: `${imagesMissingAlt} imagem(ns) sem atributo alt.` });
+  if (!hasSchema) issues.push({ module: "seo", severity: "info", title: "Sem Schema.org", description: "Nenhum dado estruturado Schema.org encontrado." });
+
+  return {
+    data: { hasTitle: !!title, titleLength: title.length, hasMetaDescription: !!metaDesc, metaDescriptionLength: metaDesc.length, hasH1: h1s.length > 0, h1Count: h1s.length, hasCanonical: !!canonical, hasRobotsTxt, hasSitemap, hasOpenGraph: hasOg, hasTwitterCard: hasTwitter, hasFavicon, imagesMissingAlt, internalLinks, externalLinks, hasSchema },
+    issues
+  };
+}
+
+// Módulo 3: Crawler de Links Quebrados (limitado a 40 recursos)
+async function auditBrokenLinks(url: string, html: string): Promise<{ brokenLinks: any[]; issues: any[] }> {
+  const $ = cheerioLoad(html);
+  const origin = new URL(url).origin;
+  const issues: any[] = [];
+  const toCheck: { url: string; type: string }[] = [];
+
+  $("a[href]").slice(0, 20).each((_, el) => { const h = $(el).attr("href") || ""; if (h.startsWith("http") || h.startsWith("/")) toCheck.push({ url: h.startsWith("/") ? origin + h : h, type: "link" }); });
+  $("img[src]").slice(0, 10).each((_, el) => { const s = $(el).attr("src") || ""; if (s && !s.startsWith("data:")) toCheck.push({ url: s.startsWith("/") ? origin + s : s.startsWith("http") ? s : origin + "/" + s, type: "image" }); });
+  $("script[src]").slice(0, 5).each((_, el) => { const s = $(el).attr("src") || ""; if (s) toCheck.push({ url: s.startsWith("/") ? origin + s : s.startsWith("http") ? s : origin + "/" + s, type: "script" }); });
+  $('link[rel="stylesheet"]').slice(0, 5).each((_, el) => { const h = $(el).attr("href") || ""; if (h) toCheck.push({ url: h.startsWith("/") ? origin + h : h.startsWith("http") ? h : origin + "/" + h, type: "stylesheet" }); });
+
+  const brokenLinks: any[] = [];
+  const checks = toCheck.slice(0, 40).map(async ({ url: checkUrl, type }) => {
+    try {
+      const resp = await fetch(checkUrl, { method: "HEAD", signal: AbortSignal.timeout(6000), headers: { "User-Agent": "Mozilla/5.0 (compatible; SiteAlugadoRadar/1.0)" } });
+      if (resp.status === 404 || resp.status === 410 || resp.status >= 500) {
+        brokenLinks.push({ url: checkUrl, statusCode: resp.status, type, foundOn: url });
+      }
+    } catch { brokenLinks.push({ url: checkUrl, statusCode: 0, type, foundOn: url }); }
+  });
+  await Promise.allSettled(checks);
+
+  if (brokenLinks.length > 0) issues.push({ module: "links", severity: brokenLinks.length > 5 ? "critical" : "warning", title: `${brokenLinks.length} link(s) quebrado(s)`, description: `Encontrados ${brokenLinks.length} recursos com erro (404/500).` });
+  return { brokenLinks, issues };
+}
+
+// Módulo 4-5: Performance via Lighthouse CLI (com fallback)
+async function auditPerformance(url: string, html: string): Promise<{ data: any; issues: any[] }> {
+  const issues: any[] = [];
+  try {
+    const { stdout } = await execAsync(
+      `npx lighthouse "${url}" --output=json --chrome-flags="--headless --no-sandbox --disable-gpu" --quiet`,
+      { timeout: 90000, maxBuffer: 10 * 1024 * 1024 }
+    );
+    const lh = JSON.parse(stdout);
+    const cats = lh.categories || {};
+    const audits = lh.audits || {};
+    const perf = Math.round((cats.performance?.score || 0) * 100);
+    const acc = Math.round((cats.accessibility?.score || 0) * 100);
+    const bp = Math.round((cats["best-practices"]?.score || 0) * 100);
+    const seo = Math.round((cats.seo?.score || 0) * 100);
+
+    if (perf < 50) issues.push({ module: "performance", severity: "critical", title: "Performance crítica", description: `Score Lighthouse: ${perf}/100.` });
+    else if (perf < 80) issues.push({ module: "performance", severity: "warning", title: "Performance baixa", description: `Score Lighthouse: ${perf}/100.` });
+
+    return { data: {
+      performanceScore: perf, seoScore: seo, accessibilityScore: acc, bestPracticesScore: bp,
+      lcp: Math.round((audits["largest-contentful-paint"]?.numericValue || 0)),
+      cls: audits["cumulative-layout-shift"]?.numericValue || 0,
+      fcp: Math.round((audits["first-contentful-paint"]?.numericValue || 0)),
+      ttfb: Math.round((audits["time-to-first-byte"]?.numericValue || 0)),
+      speedIndex: Math.round((audits["speed-index"]?.numericValue || 0)),
+      inp: Math.round((audits["interaction-to-next-paint"]?.numericValue || 0)),
+      isLighthouse: true,
+    }, issues };
+  } catch {
+    // Fallback: estimar por análise de recursos
+    const $ = cheerioLoad(html);
+    const scriptCount = $("script[src]").length;
+    const cssCount = $('link[rel="stylesheet"]').length;
+    const imgCount = $("img").length;
+    const estimated = Math.max(20, Math.min(80, 80 - scriptCount * 5 - cssCount * 3 - imgCount * 2));
+    if (estimated < 50) issues.push({ module: "performance", severity: "warning", title: "Muitos recursos pesados", description: `${scriptCount} scripts, ${cssCount} CSS, ${imgCount} imagens detectados.` });
+    return { data: { performanceScore: estimated, isLighthouse: false, requestCount: scriptCount + cssCount + imgCount }, issues };
+  }
+}
+
+// Módulo 5: Mobile (viewport meta + análise)
+async function auditMobile(html: string): Promise<{ data: any; issues: any[] }> {
+  const $ = cheerioLoad(html);
+  const issues: any[] = [];
+  const viewportMeta = $('meta[name="viewport"]').attr("content") || "";
+  const hasViewport = !!viewportMeta;
+  const hasResponsiveImages = $("img").filter((_, el) => !!$(el).attr("srcset") || !!$(el).attr("sizes")).length > 0;
+
+  if (!hasViewport) issues.push({ module: "mobile", severity: "critical", title: "Sem viewport meta", description: "Falta a meta tag de viewport — site provavelmente não é responsivo." });
+  else if (!viewportMeta.includes("width=device-width")) issues.push({ module: "mobile", severity: "warning", title: "Viewport configurada incorretamente", description: `Viewport: "${viewportMeta}"` });
+
+  const score = hasViewport ? (viewportMeta.includes("width=device-width") ? 70 : 50) : 20;
+  return { data: { hasViewportMeta: hasViewport, viewportContent: viewportMeta, hasResponsiveImages, estimatedMobileScore: score }, issues };
+}
+
+// Módulo 6: Segurança (análise de headers HTTP)
+async function auditSecurity(url: string): Promise<{ data: any; issues: any[] }> {
+  const issues: any[] = [];
+  try {
+    const resp = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Mozilla/5.0" } });
+    const h = resp.headers;
+    const hasHsts = !!h.get("strict-transport-security");
+    const hasCsp = !!h.get("content-security-policy");
+    const hasXFrame = !!h.get("x-frame-options");
+    const hasXContent = !!h.get("x-content-type-options");
+    const hasXss = !!h.get("x-xss-protection");
+    const setCookie = h.get("set-cookie") || "";
+    const cookiesInsecure = setCookie.length > 0 && !setCookie.toLowerCase().includes("secure");
+    const hasMixedContent = false; // detectado no HTML
+
+    if (!hasHsts) issues.push({ module: "security", severity: "warning", title: "Sem HSTS", description: "Header Strict-Transport-Security ausente." });
+    if (!hasCsp) issues.push({ module: "security", severity: "warning", title: "Sem CSP", description: "Content-Security-Policy não configurada." });
+    if (!hasXFrame) issues.push({ module: "security", severity: "warning", title: "Sem X-Frame-Options", description: "Suscetível a ataques de clickjacking." });
+    if (!hasXContent) issues.push({ module: "security", severity: "info", title: "Sem X-Content-Type-Options", description: "Header de proteção de MIME ausente." });
+    if (cookiesInsecure) issues.push({ module: "security", severity: "warning", title: "Cookies inseguros", description: "Cookies sem flag Secure detectados." });
+
+    return { data: { hasHsts, hasCsp, hasXFrameOptions: hasXFrame, hasXContentType: hasXContent, hasXssProtection: hasXss, hasMixedContent, cookiesInsecure }, issues };
+  } catch {
+    return { data: { hasHsts: false, hasCsp: false, hasXFrameOptions: false, hasXContentType: false, hasXssProtection: false, hasMixedContent: false, cookiesInsecure: false }, issues };
+  }
+}
+
+// Módulo 7: Detecção de Tecnologias (fingerprints)
+function detectTechnologies(html: string, headers: Record<string, string>): any[] {
+  const technologies: any[] = [];
+  const h = html.toLowerCase();
+  const check = (name: string, category: string, condition: boolean) => { if (condition) technologies.push({ name, category, confidence: 90 }); };
+
+  check("WordPress", "cms", h.includes("wp-content") || h.includes("wp-includes"));
+  check("WooCommerce", "ecommerce", h.includes("woocommerce"));
+  check("Elementor", "cms", h.includes("elementor"));
+  check("Divi", "cms", h.includes("divi"));
+  check("Joomla", "cms", h.includes("/components/com_") || h.includes("joomla"));
+  check("Drupal", "cms", h.includes("drupal"));
+  check("Laravel", "framework", h.includes("laravel_session") || (headers["x-powered-by"] || "").toLowerCase().includes("laravel"));
+  check("PHP", "language", (headers["x-powered-by"] || "").includes("PHP"));
+  check("React", "framework", h.includes("__reactfiber") || h.includes("_next/static") || h.includes("react-dom"));
+  check("Next.js", "framework", h.includes("__next_data__") || h.includes("_next/static"));
+  check("Vue.js", "framework", h.includes("__vue__") || h.includes("vue.min.js"));
+  check("Angular", "framework", h.includes("ng-version") || h.includes("angular.min.js"));
+  check("Cloudflare", "cdn", !!(headers["cf-ray"] || headers["cf-cache-status"]));
+  check("Google Analytics (GA4)", "analytics", h.includes("gtag") || h.includes("google-analytics.com"));
+  check("Google Tag Manager", "analytics", h.includes("googletagmanager.com"));
+  check("Facebook Pixel", "marketing", h.includes("connect.facebook.net") || h.includes("fbevents.js"));
+  check("Hotjar", "analytics", h.includes("hotjar.com"));
+  check("LGPD/Cookie Banner", "marketing", h.includes("cookieconsent") || h.includes("cookie-banner") || h.includes("lgpd"));
+
+  return technologies;
+}
+
+// Módulo 8: WordPress (verificação detalhada)
+async function auditWordPress(url: string, html: string): Promise<{ data: any; issues: any[] }> {
+  const origin = new URL(url).origin;
+  const h = html.toLowerCase();
+  const isWP = h.includes("wp-content") || h.includes("wp-includes");
+  if (!isWP) return { data: { isWordPress: false, hasRestApi: false, hasXmlRpc: false, hasReadme: false, hasWpLogin: false, hasWpAdmin: false }, issues: [] };
+
+  const issues: any[] = [];
+  let version: string | undefined;
+  let hasRestApi = false, hasXmlRpc = false, hasReadme = false, hasWpLogin = false, hasWpAdmin = false;
+
+  // Detectar versão via generator meta
+  const genMatch = html.match(/name="generator"\s+content="WordPress\s+([0-9.]+)"/i);
+  if (genMatch) version = genMatch[1];
+
+  // Verificar endpoints conhecidos (apenas HEAD, sem exploração)
+  const checkEndpoint = async (path: string): Promise<boolean> => { try { const r = await fetch(origin + path, { method: "HEAD", signal: AbortSignal.timeout(5000) }); return r.ok; } catch { return false; } };
+  [hasRestApi, hasXmlRpc, hasReadme, hasWpLogin, hasWpAdmin] = await Promise.all([
+    checkEndpoint("/wp-json/"),
+    checkEndpoint("/xmlrpc.php"),
+    checkEndpoint("/readme.html"),
+    checkEndpoint("/wp-login.php"),
+    checkEndpoint("/wp-admin/"),
+  ]);
+
+  if (hasReadme) issues.push({ module: "wordpress", severity: "warning", title: "readme.html exposto", description: "Arquivo readme.html acessível — revela versão do WordPress." });
+  if (hasXmlRpc) issues.push({ module: "wordpress", severity: "warning", title: "XMLRPC ativo", description: "xmlrpc.php acessível — pode ser explorado para ataques de força bruta." });
+  if (version) {
+    const major = parseInt(version.split(".")[0]);
+    if (major < 6) issues.push({ module: "wordpress", severity: "critical", title: "WordPress desatualizado", description: `Versão detectada: ${version}. Mantenha sempre atualizado.` });
+  }
+
+  return { data: { isWordPress: true, version, hasRestApi, hasXmlRpc, hasReadme, hasWpLogin, hasWpAdmin }, issues };
+}
+
+// Módulo 9: Análise de Código (HTML, CSS, JS)
+function auditCode(html: string): { data: any; issues: any[] } {
+  const $ = cheerioLoad(html);
+  const issues: any[] = [];
+  const scripts = $("script[src]").map((_, el) => $(el).attr("src")).get();
+  const styles = $('link[rel="stylesheet"]').map((_, el) => $(el).attr("href")).get();
+  const inlineStyles = $("[style]").length;
+  const duplicateScripts = scripts.length - new Set(scripts).size;
+  const duplicateStyles = styles.length - new Set(styles).size;
+
+  if (duplicateScripts > 0) issues.push({ module: "code", severity: "warning", title: "Scripts duplicados", description: `${duplicateScripts} script(s) carregado(s) mais de uma vez.` });
+  if (duplicateStyles > 0) issues.push({ module: "code", severity: "warning", title: "CSS duplicado", description: `${duplicateStyles} folha(s) CSS carregada(s) mais de uma vez.` });
+  if (inlineStyles > 20) issues.push({ module: "code", severity: "info", title: "Estilos inline excessivos", description: `${inlineStyles} elementos com style inline.` });
+  if (scripts.length > 15) issues.push({ module: "code", severity: "warning", title: "Muitos scripts externos", description: `${scripts.length} scripts carregados — impacta performance.` });
+
+  return { data: { scriptCount: scripts.length, cssCount: styles.length, inlineStylesCount: inlineStyles, duplicateScripts, duplicateStyles }, issues };
+}
+
+// Algoritmo de Pontuação e Classificação
+function calculateScores(modules: any): { scores: any; stars: number } {
+  const seoIssuesPenalty = (modules.seoIssues || []).filter((i: any) => i.module === "seo").length;
+  const scoreSeo = Math.max(0, 100 - seoIssuesPenalty * 12);
+
+  const perf = modules.performanceData;
+  const scorePerformance = perf?.isLighthouse ? (perf.performanceScore || 50) : (perf?.performanceScore || 50);
+
+  const secData = modules.securityData || {};
+  const secChecks = ["hasHsts", "hasCsp", "hasXFrameOptions", "hasXContentType", "hasXssProtection"];
+  const secPassed = secChecks.filter(k => secData[k]).length;
+  const scoreSecurity = Math.round((secPassed / secChecks.length) * 100);
+
+  const scoreMobile = modules.mobileData?.estimatedMobileScore || (perf?.isLighthouse ? (perf.accessibilityScore || 50) : 50);
+  const scoreAccessibility = perf?.isLighthouse ? (perf.accessibilityScore || 50) : 60;
+
+  const codeIssues = (modules.codeIssues || []).length;
+  const brokenCount = (modules.brokenLinks || []).length;
+  const scoreCode = Math.max(0, 100 - codeIssues * 10 - brokenCount * 8);
+
+  const scoreGeneral = Math.round(scoreSeo * 0.25 + scorePerformance * 0.25 + scoreSecurity * 0.20 + scoreMobile * 0.15 + scoreAccessibility * 0.10 + scoreCode * 0.05);
+
+  // Stars como oportunidade comercial: site ruim = mais estrelas = melhor lead
+  const opportunityScore = 100 - scoreGeneral;
+  const stars = opportunityScore >= 80 ? 5 : opportunityScore >= 60 ? 4 : opportunityScore >= 40 ? 3 : opportunityScore >= 20 ? 2 : 1;
+
+  return { scores: { scoreSeo, scorePerformance, scoreSecurity, scoreMobile, scoreAccessibility, scoreCode, scoreGeneral }, stars };
+}
+
+// Estimativa de valor do projeto
+function estimateProjectValue(scores: any, technologies: any[]): { min: number; max: number; complexity: string } {
+  const isWP = technologies.some(t => t.name === "WordPress");
+  const hasAnalytics = technologies.some(t => t.category === "analytics");
+  const avgScore = scores.scoreGeneral;
+  const complexity = avgScore < 30 ? "high" : avgScore < 60 ? "medium" : "low";
+  const base = isWP ? 1500 : 3500;
+  const multiplier = complexity === "high" ? 2.5 : complexity === "medium" ? 1.8 : 1.2;
+  return { min: Math.round(base * multiplier * 0.8), max: Math.round(base * multiplier * 1.5), complexity };
+}
+
+// ── Rotas do Radar de Oportunidades ──────────────────────────
+
+// GET /api/radar/companies — lista empresas salvas
+app.get("/api/radar/companies", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("radar_companies").select("*, radar_audits(id, stars, score_general, score_seo, score_performance, score_security, audited_at, issues, technologies, ai_summary, ai_whatsapp_msg, estimated_value_min, estimated_value_max, complexity)")
+      .order("created_at", { ascending: false }).limit(200);
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err: any) {
+    res.status(500).json({ error: "Erro ao listar empresas do radar", details: err.message });
+  }
+});
+
+// GET /api/radar/companies/:id — detalhe de uma empresa
+app.get("/api/radar/companies/:id", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("radar_companies").select("*, radar_audits(*)").eq("id", req.params.id).single();
+    if (error) throw error;
+    if (!data) { res.status(404).json({ error: "Empresa não encontrada" }); return; }
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/radar/companies/:id
+app.delete("/api/radar/companies/:id", async (req, res) => {
+  try {
+    const { error } = await supabase.from("radar_companies").delete().eq("id", req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/radar/search — busca empresas via Overpass API (OSM)
+app.post("/api/radar/search", async (req, res) => {
+  const { city, state, category = "geral", limit = 50 } = req.body;
+  if (!city) { res.status(400).json({ error: "Cidade é obrigatória" }); return; }
+
+  try {
+    // 1. Geocodificar cidade via Nominatim
+    const cityKey = city.toLowerCase().trim();
+    let coords = BR_CITY_COORDS[cityKey];
+    if (!coords) {
+      const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ", " + (state || "Brasil"))}&format=json&limit=1`, {
+        headers: { "User-Agent": "SiteAlugadoRadar/1.0 (contato@seusitealugado.com.br)" },
+        signal: AbortSignal.timeout(10000),
+      });
+      const geoData = await geoResp.json();
+      if (geoData?.[0]) coords = { lat: parseFloat(geoData[0].lat), lon: parseFloat(geoData[0].lon) };
+      else coords = { lat: -12.9704, lon: -38.5089 }; // fallback Salvador
+    }
+
+    // 2. Buscar no Overpass (com fallback para instâncias espelho)
+    const catKey = Object.keys(RADAR_OSM_TAGS).find(k => category.toLowerCase().includes(k)) || "geral";
+    const tags = RADAR_OSM_TAGS[catKey] || RADAR_OSM_TAGS["geral"];
+    const radius = limit <= 50 ? 5000 : limit <= 100 ? 8000 : 15000;
+    const unionQuery = tags.map(tag => `node[${tag}](around:${radius},${coords.lat},${coords.lon});\nway[${tag}](around:${radius},${coords.lat},${coords.lon});`).join("\n");
+    const overpassQuery = `[out:json][timeout:30];\n(\n${unionQuery}\n);\nout center ${Math.min(limit, 500)};`;
+
+    const OVERPASS_MIRRORS = [
+      "https://overpass-api.de/api/interpreter",
+      "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter",
+    ];
+
+    let ovData: any = null;
+    let lastErr = "";
+    for (const mirror of OVERPASS_MIRRORS) {
+      try {
+        const ovResp = await fetch(mirror, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "SiteAlugadoRadar/1.0 (admin@seusitealugado.com.br)",
+          },
+          body: `data=${encodeURIComponent(overpassQuery)}`,
+          signal: AbortSignal.timeout(35000),
+        });
+        if (!ovResp.ok) {
+          lastErr = `Overpass mirror ${mirror} retornou ${ovResp.status}`;
+          console.warn(`[Radar] ${lastErr} — tentando próximo mirror...`);
+          continue;
+        }
+        ovData = await ovResp.json();
+        console.log(`[Radar] Overpass OK via ${mirror} — ${ovData?.elements?.length || 0} elementos`);
+        break;
+      } catch (mirrorErr: any) {
+        lastErr = mirrorErr.message;
+        console.warn(`[Radar] Erro no mirror ${mirror}: ${mirrorErr.message}`);
+      }
+    }
+    if (!ovData) throw new Error(`Todas as instâncias Overpass falharam. Último erro: ${lastErr}`);
+    const elements: any[] = (ovData.elements || []).map((el: any) => ({
+      ...el,
+      // way/relation retornam center separado
+      lat: el.lat ?? el.center?.lat,
+      lon: el.lon ?? el.center?.lon,
+    })).filter((el: any) => el.lat && el.lon);
+
+    // 3. Mapear e salvar no Supabase (upsert por osm_id)
+    const companies = elements.map(mapOsmToCompany).filter(Boolean).slice(0, limit);
+    const saved: any[] = [];
+    for (const c of companies) {
+      const { data: existing } = await supabase.from("radar_companies").select("id").eq("osm_id", c.osmId).maybeSingle();
+      if (!existing) {
+        const { data: inserted } = await supabase.from("radar_companies").insert({
+          name: c.name, category: c.category, phone: c.phone, website: c.website,
+          email: c.email, instagram: c.instagram, facebook: c.facebook,
+          address: c.address, city: city, state: state || "",
+          latitude: c.latitude, longitude: c.longitude, osm_id: c.osmId, status: "found",
+        }).select().single();
+        if (inserted) saved.push(inserted);
+      } else {
+        saved.push(existing);
+      }
+    }
+
+    console.log(`[Radar] Busca em ${city}: ${elements.length} encontrados no OSM, ${saved.length} processados.`);
+    res.json({ total: saved.length, companies: saved });
+  } catch (err: any) {
+    console.error("[Radar] Erro na busca:", err);
+    res.status(500).json({ error: "Erro na busca de empresas", details: err.message });
+  }
+});
+
+// POST /api/radar/audit — auditar website de uma empresa
+app.post("/api/radar/audit", async (req, res) => {
+  const { companyId, url } = req.body;
+  if (!companyId || !url) { res.status(400).json({ error: "companyId e url são obrigatórios" }); return; }
+
+  // Normalizar URL
+  let normalizedUrl = url.trim();
+  if (!normalizedUrl.startsWith("http")) normalizedUrl = "https://" + normalizedUrl;
+
+  console.log(`[Radar] Iniciando auditoria: ${normalizedUrl}`);
+  await supabase.from("radar_companies").update({ status: "auditing" }).eq("id", companyId);
+
+  try {
+    // Fetch HTML principal
+    let html = "";
+    let responseHeaders: Record<string, string> = {};
+    try {
+      const r = await fetch(normalizedUrl, { signal: AbortSignal.timeout(15000), headers: { "User-Agent": "Mozilla/5.0 (compatible; SiteAlugadoRadar/1.0)" } });
+      html = await r.text();
+      r.headers.forEach((v, k) => { responseHeaders[k] = v; });
+    } catch (e) { html = ""; }
+
+    // Executar todos os módulos em paralelo
+    const [avail, seoResult, linksResult, perfResult, mobileResult, secResult, wpResult] = await Promise.all([
+      auditAvailability(normalizedUrl),
+      html ? auditSeo(normalizedUrl, html) : Promise.resolve({ data: null, issues: [] }),
+      html ? auditBrokenLinks(normalizedUrl, html) : Promise.resolve({ brokenLinks: [], issues: [] }),
+      html ? auditPerformance(normalizedUrl, html) : Promise.resolve({ data: { performanceScore: 0, isLighthouse: false }, issues: [] }),
+      html ? auditMobile(html) : Promise.resolve({ data: null, issues: [] }),
+      auditSecurity(normalizedUrl),
+      html ? auditWordPress(normalizedUrl, html) : Promise.resolve({ data: { isWordPress: false, hasRestApi: false, hasXmlRpc: false, hasReadme: false, hasWpLogin: false, hasWpAdmin: false }, issues: [] }),
+    ]);
+
+    const codeResult = html ? auditCode(html) : { data: null, issues: [] };
+    const technologies = html ? detectTechnologies(html, responseHeaders) : [];
+
+    // Consolidar issues
+    const allIssues = [...avail.issues, ...seoResult.issues, ...linksResult.issues, ...perfResult.issues, ...mobileResult.issues, ...secResult.issues, ...wpResult.issues, ...codeResult.issues];
+
+    // Calcular pontuações
+    const { scores, stars } = calculateScores({
+      seoIssues: allIssues, performanceData: perfResult.data,
+      securityData: secResult.data, mobileData: mobileResult.data,
+      brokenLinks: linksResult.brokenLinks, codeIssues: codeResult.issues,
+    });
+
+    const { min: valueMin, max: valueMax, complexity } = estimateProjectValue(scores, technologies);
+
+    // Salvar no Supabase (verificar se já existe auditoria)
+    const auditPayload = {
+      company_id: companyId,
+      audited_at: new Date().toISOString(),
+      is_online: avail.isOnline,
+      has_https: avail.hasHttps,
+      ssl_valid: avail.sslValid,
+      ssl_expiry_days: avail.sslExpiryDays,
+      response_time_ms: avail.responseTimeMs,
+      dns_resolves: avail.dnsResolves,
+      redirect_count: avail.redirectCount,
+      score_seo: scores.scoreSeo,
+      score_performance: scores.scorePerformance,
+      score_security: scores.scoreSecurity,
+      score_mobile: scores.scoreMobile,
+      score_accessibility: scores.scoreAccessibility,
+      score_code: scores.scoreCode,
+      score_general: scores.scoreGeneral,
+      stars,
+      issues: allIssues,
+      technologies,
+      seo_data: seoResult.data,
+      performance_data: perfResult.data,
+      security_data: secResult.data,
+      mobile_data: mobileResult.data,
+      broken_links: linksResult.brokenLinks,
+      wordpress_data: wpResult.data,
+      code_data: codeResult.data,
+      estimated_value_min: valueMin,
+      estimated_value_max: valueMax,
+      complexity,
+    };
+
+    const { data: existingAudit } = await supabase.from("radar_audits").select("id").eq("company_id", companyId).maybeSingle();
+
+    let auditRow;
+    if (existingAudit) {
+      const { data, error: updateErr } = await supabase.from("radar_audits").update(auditPayload).eq("id", existingAudit.id).select().single();
+      if (updateErr) throw updateErr;
+      auditRow = data;
+    } else {
+      const { data, error: insertErr } = await supabase.from("radar_audits").insert(auditPayload).select().single();
+      if (insertErr) throw insertErr;
+      auditRow = data;
+    }
+
+    await supabase.from("radar_companies").update({ status: "audited" }).eq("id", companyId);
+
+    console.log(`[Radar] ✅ Auditoria concluída: ${normalizedUrl} | Stars: ${stars} | General: ${scores.scoreGeneral}`);
+    res.json({ success: true, audit: auditRow });
+  } catch (err: any) {
+    console.error(`[Radar] ❌ Erro na auditoria de ${normalizedUrl}:`, err);
+    await supabase.from("radar_companies").update({ status: "found" }).eq("id", companyId);
+    res.status(500).json({ error: "Erro na auditoria", details: err.message });
+  }
+});
+
+// POST /api/radar/generate-proposal — gerar proposta com IA (Gemini)
+app.post("/api/radar/generate-proposal", async (req, res) => {
+  const { companyId, auditId } = req.body;
+  if (!companyId) { res.status(400).json({ error: "companyId obrigatório" }); return; }
+
+  try {
+    const { data: company } = await supabase.from("radar_companies").select("*").eq("id", companyId).single();
+    const { data: audit } = await supabase.from("radar_audits").select("*").eq("company_id", companyId).order("audited_at", { ascending: false }).limit(1).single();
+
+    if (!company || !audit) { res.status(404).json({ error: "Empresa ou auditoria não encontrada" }); return; }
+
+    const issues: any[] = Array.isArray(audit.issues) ? audit.issues : [];
+    const top5Issues = issues.filter((i: any) => i.severity === "critical").slice(0, 5).map((i: any) => `- ${i.title}: ${i.description}`).join("\n");
+    const techs: any[] = Array.isArray(audit.technologies) ? audit.technologies : [];
+    const techList = techs.map((t: any) => t.name).join(", ") || "Não detectadas";
+
+    const context = `
+Empresa: ${company.name}
+Categoria: ${company.category || "Não informada"}
+Cidade: ${company.city || ""} - ${company.state || ""}
+Website: ${company.website || "Não informado"}
+Score Geral: ${audit.score_general}/100
+Score SEO: ${audit.score_seo}/100
+Score Performance: ${audit.score_performance}/100
+Score Segurança: ${audit.score_security}/100
+Estrelas como oportunidade: ${audit.stars}/5
+Tecnologias detectadas: ${techList}
+Principais problemas encontrados:
+${top5Issues || "Nenhum problema crítico"}
+Estimativa de valor: R$ ${audit.estimated_value_min || 0} – R$ ${audit.estimated_value_max || 0}
+Complexidade: ${audit.complexity || "média"}
+    `.trim();
+
+    const key = process.env.GEMINI_API_KEY;
+    let summary = "", commercial = "", whatsappMsg = "", emailMsg = "", proposal = "";
+
+    if (key && key !== "MY_GEMINI_API_KEY") {
+      const genAI = new GoogleGenAI({ apiKey: key, httpOptions: { headers: { "User-Agent": "aistudio-build" } } });
+      const systemInstruction = `Você é um especialista em vendas de websites e serviços digitais para pequenos negócios brasileiros. Você analisa auditorias de sites e gera propostas comerciais convincentes em português brasileiro. Seja direto, profissional e persuasivo. Use dados reais da auditoria para justificar cada recomendação.`;
+
+      const [rSum, rWA, rProp] = await Promise.all([
+        genAI.models.generateContent({ model: "gemini-2.0-flash", contents: `Com base nesta auditoria, gere:\n1. RESUMO TÉCNICO (2 parágrafos, máx 150 palavras)\n2. RESUMO COMERCIAL (2 parágrafos para leigo, máx 150 palavras)\n\nAuditoria:\n${context}`, config: { systemInstruction, temperature: 0.6 } }),
+        genAI.models.generateContent({ model: "gemini-2.0-flash", contents: `Gere uma mensagem de WhatsApp e uma de E-mail para abordar o proprietário de "${company.name}" oferecendo nossos serviços de criação/melhoria de website.\nMensagem WhatsApp: máx 300 caracteres, informal, direto.\nE-mail: Assunto + corpo formal de 3 parágrafos.\n\nContexto:\n${context}`, config: { systemInstruction, temperature: 0.7 } }),
+        genAI.models.generateContent({ model: "gemini-2.0-flash", contents: `Gere uma proposta comercial completa (formato Markdown) para "${company.name}" com: Capa/Intro, Diagnóstico do site atual (citar os problemas reais), Nossa Solução, Entregáveis, Investimento (R$ ${audit.estimated_value_min}–R$ ${audit.estimated_value_max}), Prazo estimado, Próximos passos.\n\nAuditoria:\n${context}`, config: { systemInstruction, temperature: 0.6 } }),
+      ]);
+
+      const sumText = rSum.text || "";
+      const parts = sumText.split("RESUMO COMERCIAL");
+      summary = parts[0]?.replace("RESUMO TÉCNICO", "").trim() || sumText;
+      commercial = parts[1]?.trim() || "";
+      const waText = rWA.text || "";
+      const waParts = waText.split(/e-mail:|email:/i);
+      whatsappMsg = waParts[0]?.replace(/whatsapp:/i, "").trim() || waText.slice(0, 300);
+      emailMsg = waParts[1]?.trim() || "";
+      proposal = rProp.text || "";
+    } else {
+      // Fallback sem IA
+      summary = `O website de ${company.name} apresenta score geral de ${audit.score_general}/100, com problemas em SEO (${audit.score_seo}/100), performance (${audit.score_performance}/100) e segurança (${audit.score_security}/100). ${issues.length} problemas foram identificados, sendo ${issues.filter((i:any) => i.severity === "critical").length} críticos.`;
+      commercial = `O site atual de ${company.name} pode estar perdendo clientes por problemas técnicos que afetam o posicionamento no Google e a experiência do usuário. Uma intervenção profissional pode reverter esse cenário rapidamente.`;
+      whatsappMsg = `Olá! Analisei o site de ${company.name} e encontrei oportunidades de melhoria que podem aumentar seus clientes. Posso te explicar em 5 minutos? 🚀`;
+      emailMsg = `Assunto: Diagnóstico gratuito do site ${company.name}\n\nOlá,\n\nRealizamos uma análise técnica do site de ${company.name} e identificamos ${issues.length} pontos de melhoria.\n\nNossos serviços podem transformar seu site em uma ferramenta de captação de clientes.\n\nConfigure a GEMINI_API_KEY para gerar propostas personalizadas com IA.`;
+      proposal = `# Proposta Comercial — ${company.name}\n\n## Diagnóstico\n${top5Issues}\n\n## Investimento Estimado\nR$ ${audit.estimated_value_min || 0} – R$ ${audit.estimated_value_max || 0}\n\n*Configure a GEMINI_API_KEY para uma proposta detalhada com IA.*`;
+    }
+
+    await supabase.from("radar_audits").update({
+      ai_summary: summary, ai_commercial: commercial,
+      ai_whatsapp_msg: whatsappMsg, ai_email_msg: emailMsg, ai_proposal: proposal,
+    }).eq("id", audit.id);
+    await supabase.from("radar_companies").update({ status: "proposal_sent" }).eq("id", companyId);
+
+    res.json({ success: true, summary, commercial, whatsappMsg, emailMsg, proposal });
+  } catch (err: any) {
+    console.error("[Radar] Erro ao gerar proposta:", err);
+    res.status(500).json({ error: "Erro ao gerar proposta", details: err.message });
+  }
+});
+
+// GET /api/radar/report/:id — dados do relatório
+app.get("/api/radar/report/:id", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("radar_companies").select("*, radar_audits(*)").eq("id", req.params.id).single();
+    if (error || !data) { res.status(404).json({ error: "Relatório não encontrado" }); return; }
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // Inicialização do servidor (dev com Vite / prod com build)
 // ============================================================
 async function startServer() {

@@ -27,10 +27,12 @@ import {
   MessageSquare,
   Globe,
   CheckCircle,
-  Link
+  Link,
+  Radar
 } from "lucide-react";
 import { Tenant } from "../types";
 import SetupModal from "./SetupModal";
+import RadarDeOportunidades from "./RadarDeOportunidades";
 
 interface SuperAdminPanelProps {
   tenants: Tenant[];
@@ -41,7 +43,10 @@ interface SuperAdminPanelProps {
   onTenantDeleted: (tenantId: string) => void;
 }
 
+type AdminTab = 'dashboard' | 'radar';
+
 export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnterTenantAdmin, onTenantUpdated, onTenantDeleted }: SuperAdminPanelProps) {
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -232,7 +237,41 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto space-y-8">
+      {/* ── NAVEGAÇÃO DE ABAS ADMIN ── */}
+      <div className="max-w-6xl mx-auto mb-6">
+        <div className="flex gap-2 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm w-fit">
+          <button
+            onClick={() => setActiveAdminTab('dashboard')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeAdminTab === 'dashboard'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+            }`}
+          >
+            <ShieldCheck size={14} /> Dashboard
+          </button>
+          <button
+            onClick={() => setActiveAdminTab('radar')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeAdminTab === 'radar'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+            }`}
+          >
+            <Radar size={14} /> Radar de Oportunidades
+          </button>
+        </div>
+      </div>
+
+      {/* ── CONTEÚDO DO RADAR ── */}
+      {activeAdminTab === 'radar' && (
+        <div className="max-w-6xl mx-auto">
+          <RadarDeOportunidades />
+        </div>
+      )}
+
+      {/* ── CONTEÚDO DO DASHBOARD ── */}
+      {activeAdminTab !== 'radar' && <div className="max-w-6xl mx-auto space-y-8">
         
         {/* WELCOME MAT */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -703,7 +742,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
           />
         )}
 
-      </div>
+      </div>}
     </div>
   );
 }
