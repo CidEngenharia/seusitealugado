@@ -262,11 +262,39 @@ async function fetchFullTenant(tenantRow: any): Promise<Tenant> {
 // Salvar tenant completo no Supabase (upsert + sync de tabelas)
 // ============================================================
 async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
-  const tenantId = updatedTenant.id;
+  // Buscar tenant existente no Supabase por ID ou por Slug
+  let tenantId = updatedTenant.id;
+  const { data: existingBySlug } = await supabase
+    .from("tenants")
+    .select("id")
+    .ilike("slug", updatedTenant.slug)
+    .maybeSingle();
 
-  // 1. Upsert da linha principal do tenant
-  const { error: tenantError } = await supabase.from("tenants").upsert({
-    id: tenantId,
+  if (existingBySlug) {
+    tenantId = existingBySlug.id;
+  } else if (tenantId) {
+    const { data: existingById } = await supabase
+      .from("tenants")
+      .select("id")
+      .eq("id", tenantId)
+      .maybeSingle();
+    if (existingById) {
+      tenantId = existingById.id;
+    }
+  }
+
+  const validFontFamilies = ["sans", "serif", "mono"];
+  const validTemplates = ["classic", "modern", "minimal"];
+
+  const sanitizedFontFamily = validFontFamilies.includes(updatedTenant.fontFamily)
+    ? updatedTenant.fontFamily
+    : "sans";
+
+  const sanitizedTemplate = validTemplates.includes(updatedTenant.template)
+    ? updatedTenant.template
+    : "classic";
+
+  const tenantPayload: any = {
     slug: updatedTenant.slug,
     name: updatedTenant.name,
     owner_name: updatedTenant.ownerName,
@@ -275,8 +303,8 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
     banner_url: updatedTenant.bannerUrl,
     theme_color: updatedTenant.themeColor,
     theme_mode: updatedTenant.themeMode,
-    font_family: updatedTenant.fontFamily,
-    template: updatedTenant.template,
+    font_family: sanitizedFontFamily,
+    template: sanitizedTemplate,
     description: updatedTenant.description,
     address: updatedTenant.address,
     opening_hours: updatedTenant.openingHours,
@@ -292,7 +320,22 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
     seo_analytics_config: updatedTenant.seoAnalyticsConfig || null,
     whatsapp_widget_config: updatedTenant.whatsappWidgetConfig || null,
     form_submissions: updatedTenant.formSubmissions || [],
-  }, { onConflict: "id" });
+  };
+
+  // 1. Update explícito se já existe pelo slug, ou Upsert/Insert se for novo
+  let tenantError = null;
+  if (existingBySlug) {
+    const { error } = await supabase
+      .from("tenants")
+      .update(tenantPayload)
+      .eq("id", tenantId);
+    tenantError = error;
+  } else {
+    const { error } = await supabase
+      .from("tenants")
+      .upsert({ id: tenantId, ...tenantPayload }, { onConflict: "id" });
+    tenantError = error;
+  }
 
   if (tenantError) throw tenantError;
 

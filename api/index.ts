@@ -113,10 +113,38 @@ async function fetchFullTenant(tenantRow: any) {
 }
 
 async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
-  const tenantId = updatedTenant.id;
+  let tenantId = updatedTenant.id;
+  const { data: existingBySlug } = await supabase
+    .from("tenants")
+    .select("id")
+    .ilike("slug", updatedTenant.slug)
+    .maybeSingle();
 
-  const { error: tenantError } = await supabase.from("tenants").upsert({
-    id: tenantId,
+  if (existingBySlug) {
+    tenantId = existingBySlug.id;
+  } else if (tenantId) {
+    const { data: existingById } = await supabase
+      .from("tenants")
+      .select("id")
+      .eq("id", tenantId)
+      .maybeSingle();
+    if (existingById) {
+      tenantId = existingById.id;
+    }
+  }
+
+  const validFontFamilies = ["sans", "serif", "mono"];
+  const validTemplates = ["classic", "modern", "minimal"];
+
+  const sanitizedFontFamily = validFontFamilies.includes(updatedTenant.fontFamily)
+    ? updatedTenant.fontFamily
+    : "sans";
+
+  const sanitizedTemplate = validTemplates.includes(updatedTenant.template)
+    ? updatedTenant.template
+    : "classic";
+
+  const tenantPayload: any = {
     slug: updatedTenant.slug,
     name: updatedTenant.name,
     owner_name: updatedTenant.ownerName,
@@ -125,8 +153,8 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
     banner_url: updatedTenant.bannerUrl,
     theme_color: updatedTenant.themeColor,
     theme_mode: updatedTenant.themeMode,
-    font_family: updatedTenant.fontFamily,
-    template: updatedTenant.template,
+    font_family: sanitizedFontFamily,
+    template: sanitizedTemplate,
     description: updatedTenant.description,
     address: updatedTenant.address,
     opening_hours: updatedTenant.openingHours,
@@ -142,7 +170,21 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
     seo_analytics_config: updatedTenant.seoAnalyticsConfig || null,
     whatsapp_widget_config: updatedTenant.whatsappWidgetConfig || null,
     form_submissions: updatedTenant.formSubmissions || [],
-  }, { onConflict: "id" });
+  };
+
+  let tenantError = null;
+  if (existingBySlug) {
+    const { error } = await supabase
+      .from("tenants")
+      .update(tenantPayload)
+      .eq("id", tenantId);
+    tenantError = error;
+  } else {
+    const { error } = await supabase
+      .from("tenants")
+      .upsert({ id: tenantId, ...tenantPayload }, { onConflict: "id" });
+    tenantError = error;
+  }
 
   if (tenantError) throw tenantError;
 
