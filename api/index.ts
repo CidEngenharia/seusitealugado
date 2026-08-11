@@ -246,12 +246,15 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
 app.get("/api/tenants", async (req, res) => {
   try {
     const { data: tenantRows, error } = await supabase.from("tenants").select("*").order("created_at");
-    if (error) throw error;
-    const tenants = await Promise.all((tenantRows || []).map(fetchFullTenant));
-    res.json(tenants);
+    if (!error && tenantRows && tenantRows.length > 0) {
+      const tenants = await Promise.all(tenantRows.map(fetchFullTenant));
+      res.json(tenants);
+      return;
+    }
   } catch (err: any) {
-    res.status(500).json({ error: "Erro ao buscar tenants", details: err.message });
+    console.error("Erro no GET /api/tenants:", err);
   }
+  res.json([]);
 });
 
 // GET /api/tenants/:slug
@@ -259,11 +262,14 @@ app.get("/api/tenants/:slug", async (req, res) => {
   try {
     const slug = req.params.slug.toLowerCase();
     const { data: tenantRow, error } = await supabase.from("tenants").select("*").ilike("slug", slug).single();
-    if (error || !tenantRow) { res.status(404).json({ error: "Tenant não encontrado" }); return; }
-    res.json(await fetchFullTenant(tenantRow));
+    if (!error && tenantRow) {
+      res.json(await fetchFullTenant(tenantRow));
+      return;
+    }
   } catch (err: any) {
-    res.status(500).json({ error: "Erro ao buscar tenant", details: err.message });
+    console.error("Erro no GET /api/tenants/:slug:", err);
   }
+  res.status(404).json({ error: "Tenant não encontrado" });
 });
 
 // GET /api/check-slug/:slug
@@ -286,6 +292,7 @@ app.post("/api/tenants", async (req, res) => {
     await saveTenantToSupabase(updatedTenant);
     res.json({ success: true, tenant: updatedTenant });
   } catch (err: any) {
+    console.error("Erro no POST /api/tenants:", err);
     res.status(500).json({ error: "Erro ao salvar tenant", details: err.message });
   }
 });
