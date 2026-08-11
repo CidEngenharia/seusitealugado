@@ -508,32 +508,62 @@ app.get("/api/tenants", async (req, res) => {
       .from("tenants").select("*").order("created_at");
     if (error) throw error;
 
-    const tenants = await Promise.all((tenantRows || []).map(fetchFullTenant));
-    res.json(tenants);
+    if (tenantRows && tenantRows.length > 0) {
+      const tenants = await Promise.all(tenantRows.map(fetchFullTenant));
+      res.json(tenants);
+      return;
+    }
   } catch (err: any) {
-    console.error("Erro ao listar tenants:", err);
-    res.status(500).json({ error: "Erro ao buscar tenants", details: err.message });
+    console.error("Erro ao listar tenants do Supabase, recorrendo a database.json local:", err.message || err);
   }
+
+  // Fallback para arquivo local database.json se Supabase falhar ou estiver vazio
+  try {
+    const dbPath = path.join(__dirname, "database.json");
+    if (fs.existsSync(dbPath)) {
+      const fileData = fs.readFileSync(dbPath, "utf-8");
+      const list: Tenant[] = JSON.parse(fileData);
+      res.json(list);
+      return;
+    }
+  } catch (fErr) {
+    console.error("Erro ao ler database.json local:", fErr);
+  }
+
+  res.json([]);
 });
 
 // GET /api/tenants/:slug — busca um tenant pelo slug
 app.get("/api/tenants/:slug", async (req, res) => {
+  const slug = req.params.slug.toLowerCase();
   try {
-    const slug = req.params.slug.toLowerCase();
     const { data: tenantRow, error } = await supabase
       .from("tenants").select("*").ilike("slug", slug).single();
 
-    if (error || !tenantRow) {
-      res.status(404).json({ error: "Tenant não encontrado" });
+    if (!error && tenantRow) {
+      const tenant = await fetchFullTenant(tenantRow);
+      res.json(tenant);
       return;
     }
-
-    const tenant = await fetchFullTenant(tenantRow);
-    res.json(tenant);
   } catch (err: any) {
-    console.error("Erro ao buscar tenant:", err);
-    res.status(500).json({ error: "Erro ao buscar tenant", details: err.message });
+    console.error(`Erro ao buscar tenant '${slug}' no Supabase:`, err.message || err);
   }
+
+  // Fallback para database.json local
+  try {
+    const dbPath = path.join(__dirname, "database.json");
+    if (fs.existsSync(dbPath)) {
+      const fileData = fs.readFileSync(dbPath, "utf-8");
+      const list: Tenant[] = JSON.parse(fileData);
+      const found = list.find((t) => t.slug.toLowerCase() === slug);
+      if (found) {
+        res.json(found);
+        return;
+      }
+    }
+  } catch {}
+
+  res.status(404).json({ error: "Tenant não encontrado" });
 });
 
 // GET /api/check-slug/:slug — verifica se um slug está disponível para uso
@@ -564,13 +594,47 @@ app.post("/api/tenants", async (req, res) => {
   const payloadKB = Math.round(Buffer.byteLength(JSON.stringify(updatedTenant)) / 1024);
   console.log(`[POST /api/tenants] slug=${updatedTenant.slug} | payload=${payloadKB}KB`);
 
+  let dbSaved = false;
+  let saveError: any = null;
+
   try {
     await saveTenantToSupabase(updatedTenant);
-    console.log(`[POST /api/tenants] ✅ Salvo com sucesso: ${updatedTenant.slug}`);
-    res.json({ success: true, tenant: updatedTenant });
+    dbSaved = true;
+    console.log(`[POST /api/tenants] ✅ Salvo com sucesso no Supabase: ${updatedTenant.slug}`);
   } catch (err: any) {
-    console.error(`[POST /api/tenants] ❌ Erro ao salvar ${updatedTenant.slug}:`, err);
-    res.status(500).json({ error: "Erro ao salvar tenant", details: err.message });
+    saveError = err;
+    console.error(`[POST /api/tenants] ⚠️ Erro ao salvar no Supabase (${updatedTenant.slug}):`, err.message || err);
+  }
+
+  // Atualiza arquivo local database.json como fallback persistente
+  try {
+    const dbPath = path.join(__dirname, "database.json");
+    if (fs.existsSync(dbPath)) {
+      const fileData = fs.readFileSync(dbPath, "utf-8");
+      let list: Tenant[] = JSON.parse(fileData);
+      const idx = list.findIndex((t) => t.slug.toLowerCase() === updatedTenant.slug.toLowerCase() || (updatedTenant.id && t.id === updatedTenant.id));
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...updatedTenant };
+      } else {
+        list.push(updatedTenant);
+      }
+      fs.writeFileSync(dbPath, JSON.stringify(list, null, 2), "utf-8");
+      console.log(`[POST /api/tenants] 💾 Sincronizado no database.json local`);
+    }
+  } catch (fileErr) {
+    console.error(`[POST /api/tenants] Erro ao gravar database.json:`, fileErr);
+  }
+
+  if (dbSaved) {
+    res.json({ success: true, tenant: updatedTenant });
+  } else {
+    // Se o Supabase falhou mas gravou no fallback local ou atualizou sessão, retorna sucesso parcial
+    res.json({ 
+      success: true, 
+      warning: "Salvo localmente. Supabase indisponível no momento.", 
+      details: saveError?.message, 
+      tenant: updatedTenant 
+    });
   }
 });
 

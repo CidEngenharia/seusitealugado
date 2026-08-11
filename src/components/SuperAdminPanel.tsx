@@ -449,7 +449,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
           </div>
 
           <div className="overflow-x-auto text-xs">
-            <table className="w-full text-left font-sans border-collapse">
+            <table className="w-full min-w-[650px] text-left font-sans border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 font-bold uppercase tracking-wider text-[9px]">
                   <th className="p-3 w-10">Sel.</th>
@@ -519,14 +519,14 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
                       </td>
 
                       <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-2.5">
+                        <div className="flex items-center justify-end gap-1.5 shrink-0">
                           {/* WhatsApp button */}
                           {tenant.socials.whatsapp && (
                             <a 
                               href={`https://wa.me/${tenant.socials.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent("A sua assinatura vence em 5 dias, após esse prazo você ainda tem mais 5 dias para realizar o pagamento. Evite o congelamento do seu sistema")}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all cursor-pointer"
+                              className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all cursor-pointer flex items-center justify-center shrink-0"
                               title="Enviar lembrete de pagamento"
                             >
                               <MessageSquare size={14} />
@@ -536,7 +536,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
                           <button
                             disabled={updatingId === tenant.id}
                             onClick={() => onEnterTenantAdmin(tenant.slug)}
-                            className="p-2 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 transition-all cursor-pointer"
+                            className="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 transition-all cursor-pointer flex items-center justify-center shrink-0"
                             title="Acessar painel do lojista"
                           >
                             <Settings size={14} />
@@ -546,7 +546,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
                           <button 
                             disabled={updatingId === tenant.id}
                             onClick={() => handleToggleStatus(tenant.id, tenant.status)}
-                            className={`p-2 rounded-lg transition-all cursor-pointer ${
+                            className={`w-8 h-8 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                               tenant.status === 'active' 
                                 ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200' 
                                 : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250'
@@ -564,7 +564,7 @@ export default function SuperAdminPanel({ tenants, onGoBack, onRefreshAll, onEnt
                           <button 
                             disabled={updatingId === tenant.id}
                             onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
-                            className="p-2 rounded-lg bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-600 border border-rose-200 transition-all cursor-pointer"
+                            className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-600 border border-rose-200 transition-all cursor-pointer flex items-center justify-center shrink-0"
                             title="Excluir Site"
                           >
                             <X size={14} />
