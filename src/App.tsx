@@ -22,7 +22,9 @@ const RESERVED_ROUTES = new Set(["", "portfolio", "busca", "admin"]);
 const SESSION_KEY = "siteAlugado_session";
 
 export default function App() {
-  const [tenants, setTenants] = useState<Tenant[]>(LOCAL_FALLBACK_TENANTS);
+  // Estado inicial vazio — dados reais vêm da API (Supabase)
+  // O fallback local (database.json) só é usado se a API falhar completamente
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -37,22 +39,16 @@ export default function App() {
     return tenantsList.find(t => t.customDomain && t.customDomain.toLowerCase().replace(/^www\./, "") === cleanHost) || null;
   };
 
-  const initialDomainTenant = getTenantByDomain(LOCAL_FALLBACK_TENANTS);
-
   // Custom SPA Client-Side States
-  const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'>(
-    initialDomainTenant ? 'tenant-public' : 'landing'
-  );
-  const [activeSlug, setActiveSlug] = useState<string | null>(
-    initialDomainTenant ? initialDomainTenant.slug : null
-  );
+  const [currentView, setCurrentView] = useState<'landing' | 'busca' | 'portfolio' | 'tenant-public' | 'tenant-admin' | 'super-admin'>('landing');
+  const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
   const updateBrowserPath = (path: string) => {
     const nextPath = path.startsWith("/") ? path : `/${path}`;
     window.history.pushState(null, "", nextPath === "/" ? "/" : nextPath);
   };
 
-  // Fetch tenants — sem fallback automático que sobrescreve dados reais
+  // Fetch tenants — fonte de verdade é sempre o Supabase via API
   const fetchTenants = async () => {
     try {
       const response = await fetch("/api/tenants");
@@ -67,7 +63,7 @@ export default function App() {
       return false;
     } catch (e) {
       console.error("API indisponível, usando dados locais de demonstração:", e);
-      // Só aplica fallback se não houver dados já carregados
+      // Fallback para dados locais apenas se não houver dados carregados
       setTenants((current) => current.length > 0 ? current : LOCAL_FALLBACK_TENANTS);
       return false;
     } finally {

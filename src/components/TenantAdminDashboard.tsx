@@ -555,7 +555,7 @@ export default function TenantAdminDashboard({
   const [socialPlatform, setSocialPlatform] = useState<string>("instagram");
   const [socialLink, setSocialLink] = useState<string>("instagram.com/");
 
-  // Save Tenant helper — persiste no Supabase e atualiza estado local imediatamente
+  // Save Tenant helper — persiste no Supabase e atualiza estado local com dados confirmados do servidor
   const saveTenantChanges = async (updated: Tenant) => {
     try {
       const response = await fetch("/api/tenants", {
@@ -564,25 +564,34 @@ export default function TenantAdminDashboard({
         body: JSON.stringify(updated),
       });
       if (response.ok) {
-        onTenantUpdated(updated);
-        lastTenantIdRef.current = updated.id;
-        setSettingsDraft(updated);
+        // Buscar dados confirmados do servidor para garantir sincronização
+        try {
+          const confirmResponse = await fetch(`/api/tenants/${updated.slug}`);
+          if (confirmResponse.ok) {
+            const confirmedTenant = await confirmResponse.json();
+            onTenantUpdated(confirmedTenant);
+            lastTenantIdRef.current = confirmedTenant.id;
+            setSettingsDraft(confirmedTenant);
+          } else {
+            onTenantUpdated(updated);
+            lastTenantIdRef.current = updated.id;
+            setSettingsDraft(updated);
+          }
+        } catch {
+          onTenantUpdated(updated);
+          lastTenantIdRef.current = updated.id;
+          setSettingsDraft(updated);
+        }
         showToast('success', 'Alterações salvas com sucesso!');
       } else {
         let errMsg = `Erro ${response.status}`;
         try { const body = await response.json(); errMsg = body.details || body.error || errMsg; } catch {}
-        console.warn("API retornou erro ao salvar:", errMsg);
-        onTenantUpdated(updated);
-        lastTenantIdRef.current = updated.id;
-        setSettingsDraft(updated);
-        showToast('warning', `Salvo localmente, mas o servidor retornou um erro: ${errMsg}`);
+        console.error("API retornou erro ao salvar:", errMsg);
+        showToast('error', `Erro ao salvar: ${errMsg}`);
       }
     } catch (e) {
       console.error("Falha de rede ao salvar tenant:", e);
-      onTenantUpdated(updated);
-      lastTenantIdRef.current = updated.id;
-      setSettingsDraft(updated);
-      showToast('error', 'Falha de conexão: as alterações não foram salvas no servidor. Verifique se o servidor está rodando e tente novamente.');
+      showToast('error', 'Falha de conexão: as alterações não foram salvas no servidor. Verifique sua conexão e tente novamente.');
     }
   };
 

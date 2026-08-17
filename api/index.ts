@@ -84,6 +84,7 @@ async function fetchFullTenant(tenantRow: any) {
     description: tenantRow.description || "",
     address: tenantRow.address || "",
     openingHours: tenantRow.opening_hours || "",
+    customDomain: tenantRow.custom_domain || undefined,
     socials: tenantRow.socials || {},
     mapLocation: tenantRow.map_location || "",
     fidelityProgram: tenantRow.fidelity_program || { type: "points", rate: 1, rule: "" },
@@ -191,7 +192,7 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
   if (tenantError) throw tenantError;
 
   // Limpar e reinserir dados relacionados
-  await Promise.all([
+  const deleteResults = await Promise.all([
     supabase.from("services").delete().eq("tenant_id", tenantId),
     supabase.from("crm_clients").delete().eq("tenant_id", tenantId),
     supabase.from("bookings").delete().eq("tenant_id", tenantId),
@@ -203,6 +204,12 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
     supabase.from("reviews").delete().eq("tenant_id", tenantId),
     supabase.from("products_to_sell").delete().eq("tenant_id", tenantId),
   ]);
+
+  for (const res of deleteResults) {
+    if (res.error) {
+      throw new Error(`Erro ao deletar dados anteriores: ${res.error.message}`);
+    }
+  }
 
   const insertOps: Promise<any>[] = [];
 
@@ -237,7 +244,12 @@ async function saveTenantToSupabase(updatedTenant: any): Promise<void> {
     insertOps.push(supabase.from("products_to_sell").insert(updatedTenant.productsToSell.map((p: any) => ({ id: p.id, tenant_id: tenantId, name: p.name, description: p.description || null, price: p.price, image_url: p.imageUrl || null }))));
   }
 
-  await Promise.all(insertOps);
+  const insertResults = await Promise.all(insertOps);
+  for (const res of insertResults) {
+    if (res.error) {
+      throw new Error(`Erro ao salvar dados relacionados: ${res.error.message}`);
+    }
+  }
 }
 
 // ── Rotas ─────────────────────────────────────────────────────

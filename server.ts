@@ -187,6 +187,7 @@ function assembleTenant(
     description: t.description || "",
     address: t.address || "",
     openingHours: t.opening_hours || "",
+    customDomain: t.custom_domain || undefined,
     socials: t.socials || {},
     mapLocation: t.map_location || "",
     fidelityProgram: t.fidelity_program || { type: "points", rate: 1, rule: "" },
@@ -343,7 +344,7 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
   if (tenantError) throw tenantError;
 
   // 2. Deletar registros antigos de todas as tabelas relacionadas
-  await Promise.all([
+  const deleteResults = await Promise.all([
     supabase.from("services").delete().eq("tenant_id", tenantId),
     supabase.from("crm_clients").delete().eq("tenant_id", tenantId),
     supabase.from("bookings").delete().eq("tenant_id", tenantId),
@@ -355,6 +356,12 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
     supabase.from("reviews").delete().eq("tenant_id", tenantId),
     supabase.from("products_to_sell").delete().eq("tenant_id", tenantId),
   ]);
+
+  for (const res of deleteResults) {
+    if (res.error) {
+      throw new Error(`Erro ao deletar dados anteriores: ${res.error.message}`);
+    }
+  }
 
   // 3. Reinserir com dados atualizados
   const insertOps: PromiseLike<any>[] = [];
@@ -464,7 +471,12 @@ async function saveTenantToSupabase(updatedTenant: Tenant): Promise<void> {
     ));
   }
 
-  await Promise.all(insertOps);
+  const insertResults = await Promise.all(insertOps);
+  for (const res of insertResults) {
+    if (res.error) {
+      throw new Error(`Erro ao salvar dados relacionados: ${res.error.message}`);
+    }
+  }
 }
 
 // ============================================================
